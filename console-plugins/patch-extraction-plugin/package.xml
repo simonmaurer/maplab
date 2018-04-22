@@ -2,7 +2,7 @@
 <package format="2">
   <name>patch_extraction_plugin</name>
   <version>0.1.0</version>
-  <description>A plugin to extract images and patches (pairs or triplets) around keypoints corresponding to same 3d points of a mapx</description>
+  <description>A plugin to extract images and patches (pairs or triplets) around keypoints corresponding to same 3d points of a map</description>
   <maintainer email=“simomaur@student.ethz.ch”>Simon Maurer</maintainer>
   <license>Apache 2.0</license>
 
@@ -10,4 +10,6 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>console_common</depend>
+  <depend>map_manager</depend>
+  <depend>vi_map</depend>
 </package>

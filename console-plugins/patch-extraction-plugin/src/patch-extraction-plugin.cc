@@ -3,8 +3,12 @@
 //
 
 #include <iostream>
+#include <string>
 
 #include <console-common/console-plugin-base.h>
+
+#include <map-manager/map-manager.h>
+#include <vi-map/vi-map.h>
 
 // Your new plugin needs to derive from ConsolePluginBase.
 // (Alternatively, you can derive from ConsolePluginBaseWithPlotter if you need
@@ -30,7 +34,22 @@ public:
                     // under ~/maplab_ws/src/maplab/console-plugins for more examples.
 
                     // Here, we just print a message to the terminal.
-                    std::cout << "Patch extraction in progres.." << std::endl;
+                    std::cout << "Patch extraction in progress.." << std::endl;
+
+                    std::string selected_map_key;
+
+                    vi_map::VIMapManager map_manager;
+                    vi_map::VIMapManager::MapWriteAccess map =
+                            map_manager.getMapWriteAccess(selected_map_key);
+                    // ToDo load associated images of map (greyscale/RGB) and start extraction
+
+
+                    // This function will write the name of the selected map key into
+                    // selected_map_key. The function will return false and print an error
+                    // message if no map key is selected.
+                    if (!getSelectedMapKeyIfSet(&selected_map_key)) {
+                        return common::kStupidUserError;
+                    }
 
                     // Every console command returns an integer, you can take one from
                     // the CommandStatus enum. kSuccess returns everything is fine.
