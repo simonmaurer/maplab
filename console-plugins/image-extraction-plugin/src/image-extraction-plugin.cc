@@ -35,9 +35,16 @@ DEFINE_int32(
     "Supported patch sizes: "
     "0-std::numeric_limits<int>::max()");
 
-DEFINE_uint64(
-    dense_tsdf_voxels_per_side, 16u,
-    "Voxels per side of a Block of the TSDF grid.");
+DEFINE_bool(
+    image_extraction_greyscale, false,
+    "Whether to extract images/patches as RGB or greyscale");
+
+DEFINE_double(
+    image_extraction_trainval_ratio, 1.0,
+    "Training vs validation data ratio for the dataset split."
+    "Supported range: "
+    "[0.0, 1.0], a value of 1.0 corresponds to only outputting data to the "
+    "training set");
 
 namespace image_extraction_plugin {
 
@@ -83,7 +90,9 @@ int ImageExtractionPlugin::extractImages() const {
       map_manager.getMapReadAccess(selected_map_key);
   // ToDo load associated images of map (greyscale/RGB) and start
   // extraction
-  std::cout << map->numMissions() << std::endl;
+  vi_map::LandmarkIdList landmark_ids;
+  map->getAllLandmarkIds(&landmark_ids);
+  std::cout << "# landmarks in total: " << landmark_ids.size() << std::endl;
 
   std::string map_path;
   map_manager.getMapFolder(selected_map_key, &map_path);
