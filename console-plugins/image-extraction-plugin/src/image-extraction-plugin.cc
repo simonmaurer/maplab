@@ -13,12 +13,38 @@
 
 #include <opencv2/core.hpp>
 
+// Definition of parameters for commands
+DEFINE_string(
+    image_extraction_output_dir, "",
+    "Path to the output directory where the images or .hdf5 files shall be "
+    "exported. Defaults to input map directory");
+
+DEFINE_int32(
+    image_extraction_imagesize, -1,
+    "Image size [px]"
+    "Supported commands: "
+    "extract_images "
+    "Supported patch sizes: "
+    "keep original image size = -1, 0-std::numeric_limits<int>::max()");
+
+DEFINE_int32(
+    image_extraction_patchsize, 64,
+    "Patch size [px]"
+    "Supported commands: "
+    "extract_patches "
+    "Supported patch sizes: "
+    "0-std::numeric_limits<int>::max()");
+
+DEFINE_uint64(
+    dense_tsdf_voxels_per_side, 16u,
+    "Voxels per side of a Block of the TSDF grid.");
+
 namespace image_extraction_plugin {
 
 ImageExtractionPlugin::ImageExtractionPlugin(common::Console* console)
     : common::ConsolePluginBase(console) {
   addCommand(
-      {"extract_patches"}, [this]() -> int { return extract(); },
+      {"extract_patches"}, [this]() -> int { return process(); },
       "This command extracts images or patches of matching/non-matching "
       "keypoint "
       "pairs/triplets corresponding to same 3d points of a loaded map. "
@@ -32,9 +58,7 @@ std::string ImageExtractionPlugin::getPluginId() const {
   return "image_extraction_plugin";
 }
 
-int ImageExtractionPlugin::extract() const {
-  std::cout << "Patch extraction in progress.." << std::endl;
-
+int ImageExtractionPlugin::process() const {
   std::string selected_map_key;
   // This function will write the name of the selected map key into
   // selected_map_key. The function will return false and print an error
@@ -42,6 +66,8 @@ int ImageExtractionPlugin::extract() const {
   if (!getSelectedMapKeyIfSet(&selected_map_key)) {
     return common::kStupidUserError;
   }
+
+  std::cout << "Patch extraction in progress.." << std::endl;
 
   vi_map::VIMapManager map_manager;
   vi_map::VIMapManager::MapReadAccess map =
@@ -54,8 +80,6 @@ int ImageExtractionPlugin::extract() const {
   map_manager.getMapFolder(selected_map_key, &map_path);
   std::cout << "map path: " << map_path << std::endl;
 
-  // Every console command returns an integer, you can take one from
-  // the CommandStatus enum. kSuccess returns everything is fine.
   // Other commonly used return values are common::kUnknownError and
   // common::kStupidUserError.
   return common::kSuccess;

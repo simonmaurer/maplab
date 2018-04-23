@@ -16,7 +16,7 @@ class ImageExtractionPlugin : public common::ConsolePluginBase {
   virtual std::string getPluginId() const;
 
  private:
-  int extract() const;
+  int process() const;
 };
 
 }  // namespace image_extraction_plugin
