@@ -44,7 +44,16 @@ namespace image_extraction_plugin {
 ImageExtractionPlugin::ImageExtractionPlugin(common::Console* console)
     : common::ConsolePluginBase(console) {
   addCommand(
-      {"extract_patches"}, [this]() -> int { return process(); },
+      {"extract_images"}, [this]() -> int { return extractImages(); },
+      "This command extracts images or patches of matching/non-matching "
+      "keypoint "
+      "pairs/triplets corresponding to same 3d points of a loaded map. "
+      "Parameters "
+      "are: --mode/-M {images, pairs, triplets}, --output_dir/-O, "
+      "--patch_size/-P",
+      common::Processing::Sync);
+  addCommand(
+      {"extract_patches"}, [this]() -> int { return extractPatches(); },
       "This command extracts images or patches of matching/non-matching "
       "keypoint "
       "pairs/triplets corresponding to same 3d points of a loaded map. "
@@ -58,7 +67,34 @@ std::string ImageExtractionPlugin::getPluginId() const {
   return "image_extraction_plugin";
 }
 
-int ImageExtractionPlugin::process() const {
+int ImageExtractionPlugin::extractImages() const {
+  std::string selected_map_key;
+  // This function will write the name of the selected map key into
+  // selected_map_key. The function will return false and print an error
+  // message if no map key is selected.
+  if (!getSelectedMapKeyIfSet(&selected_map_key)) {
+    return common::kStupidUserError;
+  }
+
+  std::cout << "Image extraction in progress.." << std::endl;
+
+  vi_map::VIMapManager map_manager;
+  vi_map::VIMapManager::MapReadAccess map =
+      map_manager.getMapReadAccess(selected_map_key);
+  // ToDo load associated images of map (greyscale/RGB) and start
+  // extraction
+  std::cout << map->numMissions() << std::endl;
+
+  std::string map_path;
+  map_manager.getMapFolder(selected_map_key, &map_path);
+  std::cout << "map path: " << map_path << std::endl;
+
+  // Other commonly used return values are common::kUnknownError and
+  // common::kStupidUserError.
+  return common::kSuccess;
+}
+
+int ImageExtractionPlugin::extractPatches() const {
   std::string selected_map_key;
   // This function will write the name of the selected map key into
   // selected_map_key. The function will return false and print an error
