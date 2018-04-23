@@ -13,27 +13,12 @@
 
 #include <opencv2/core.hpp>
 
-// Definition of parameters for commands
+//// Definition of flags for commands
+// global
 DEFINE_string(
     image_extraction_output_dir, "",
     "Path to the output directory where the images or .hdf5 files shall be "
     "exported. Defaults to input map directory");
-
-DEFINE_int32(
-    image_extraction_imagesize, -1,
-    "Image size [px]"
-    "Supported commands: "
-    "extract_images "
-    "Supported patch sizes: "
-    "keep original image size = -1, 0-std::numeric_limits<int>::max()");
-
-DEFINE_int32(
-    image_extraction_patchsize, 64,
-    "Patch size [px]"
-    "Supported commands: "
-    "extract_patches "
-    "Supported patch sizes: "
-    "0-std::numeric_limits<int>::max()");
 
 DEFINE_bool(
     image_extraction_greyscale, false,
@@ -43,8 +28,48 @@ DEFINE_double(
     image_extraction_trainval_ratio, 1.0,
     "Training vs validation data ratio for the dataset split."
     "Supported range: "
-    "[0.0, 1.0], a value of 1.0 corresponds to only outputting data to the "
-    "training set");
+    "[0.0, 1.0], a value of 1.0 corresponds to outputting data to the "
+    "training set only");
+
+// only supported by extract_images
+DEFINE_int32(
+    image_extraction_imagesize, -1,
+    "Image size [px]"
+    "Supported commands: "
+    "extract_images "
+    "Supported patch sizes: "
+    "keep original image size = -1, 0-std::numeric_limits<int>::max()");
+DEFINE_int32(
+    image_extraction_num_images, 200,
+    "Number of images to extract per map"
+    "Supported commands: "
+    "extract_images "
+    "Supported number of images: "
+    "1 - number of vertices per map");
+
+// only supported by extract_patches
+DEFINE_int32(
+    image_extraction_patchsize, 64,
+    "Patch size [px]"
+    "Supported commands: "
+    "extract_patches "
+    "Supported patch sizes: "
+    "0-std::numeric_limits<int>::max()");
+DEFINE_int32(
+    image_extraction_num_landmarks_per_map, 64,
+    "Number of landmarks/3d points per map to extract corresponding image "
+    "patches from"
+    "Supported commands: "
+    "extract_patches "
+    "Supported number of landmarks: "
+    "1 - number of landmarks per map");
+DEFINE_int32(
+    image_extraction_num_samples_per_landmark, 8,
+    "Number of patch pairs/triplets per observed landmark"
+    "Supported commands: "
+    "extract_patches "
+    "Supported number of samples per landmark: "
+    "1 - number of samples the landmark has been observed");
 
 namespace image_extraction_plugin {
 
@@ -93,6 +118,11 @@ int ImageExtractionPlugin::extractImages() const {
   vi_map::LandmarkIdList landmark_ids;
   map->getAllLandmarkIds(&landmark_ids);
   std::cout << "# landmarks in total: " << landmark_ids.size() << std::endl;
+  std::vector<std::string> map_keys;
+  map_manager.getAllMapKeys(&map_keys);
+  for (const std::string map_key : map_keys) {
+    std::cout << "map key: " << map_key << std::endl;
+  }
 
   std::string map_path;
   map_manager.getMapFolder(selected_map_key, &map_path);
@@ -129,6 +159,8 @@ int ImageExtractionPlugin::extractPatches() const {
   // common::kStupidUserError.
   return common::kSuccess;
 }
+
+checkPreconditions() const {}
 
 }  // namespace image_extraction_plugin
 

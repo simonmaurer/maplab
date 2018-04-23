@@ -18,6 +18,7 @@ class ImageExtractionPlugin : public common::ConsolePluginBase {
  private:
   int extractImages() const;
   int extractPatches() const;
+  bool checkPreconditions() const;
 };
 
 }  // namespace image_extraction_plugin
