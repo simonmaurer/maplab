@@ -7,6 +7,10 @@
 #include <iostream>
 #include <string>
 
+#include <algorithm>
+#include <iterator>
+#include <random>
+
 #include <console-common/console-plugin-base.h>
 #include <map-manager/map-manager.h>
 #include <vi-map/vi-map.h>
@@ -55,8 +59,8 @@ DEFINE_int32(
     "extract_patches "
     "Supported patch sizes: "
     "0-std::numeric_limits<int>::max()");
-DEFINE_int32(
-    ie_num_landmarks_per_map, 64,
+DEFINE_int64(
+    ie_num_landmarks_per_map, 100,
     "Number of landmarks/3d points per map to extract corresponding image "
     "patches from"
     "Supported commands: "
@@ -126,6 +130,10 @@ int ImageExtractionPlugin::extractImages() const {
   map_manager.getMapFolder(selected_map_key, &map_path);
   std::cout << "map path: " << map_path << std::endl;
 
+  int num_landmarks_per_mape = 0;
+  std::cout << "num_landmarks_per_map FLAG: " << FLAGS_ie_num_landmarks_per_map
+            << std::endl;
+
   // Other commonly used return values are common::kUnknownError and
   // common::kStupidUserError.
   return common::kSuccess;
@@ -137,27 +145,78 @@ int ImageExtractionPlugin::extractPatches() const {
     return common::kStupidUserError;
   }
 
+  if (!checkPatchFlags()) {
+    return common::kStupidUserError;
+  }
   std::cout << "Patch extraction in progress.." << std::endl;
 
   vi_map::VIMapManager map_manager;
-  vi_map::VIMapManager::MapReadAccess map =
+  const vi_map::VIMapManager::MapReadAccess map =
       map_manager.getMapReadAccess(selected_map_key);
-  // ToDo load associated images of map (greyscale/RGB) and start
-  // extraction
-  std::cout << map->numMissions() << std::endl;
+  // processPatches(map);
 
-  std::string map_path;
-  map_manager.getMapFolder(selected_map_key, &map_path);
-  std::cout << "map path: " << map_path << std::endl;
+  // Shuffle
 
+  /*
+          // ToDo load associated images of map (greyscale/RGB) and start
+          // extraction
+          std::cout << map->numMissions() << std::endl;
+
+          std::string map_path;
+          map_manager.getMapFolder(selected_map_key, &map_path);
+          std::cout << "map path: " << map_path << std::endl;
+  */
   // Other commonly used return values are common::kUnknownError and
   // common::kStupidUserError.
   return common::kSuccess;
 }
 
-bool checkImageFlags() const {}
+bool ImageExtractionPlugin::checkImageFlags() const {
+  return true;
+}
 
-bool checkPatchFlags() const {}
+bool ImageExtractionPlugin::checkPatchFlags() const {
+  return true;
+}
+
+bool ImageExtractionPlugin::processPatches(
+    const vi_map::VIMapManager::MapReadAccess map) {
+  vi_map::LandmarkIdList landmark_ids;
+  map->getAllLandmarkIds(&landmark_ids);
+  const size_t num_map_landmarks = landmark_ids.size();
+  std::cout << num_map_landmarks << std::endl;
+  if (FLAGS_ie_num_landmarks_per_map > num_map_landmarks)
+    return false;
+
+  std::random_device rd;
+  std::mt19937 generator(
+      rd());  // which is why we define the method as non-const
+  std::shuffle(landmark_ids.begin(), landmark_ids.end(), generator);
+  vi_map::LandmarkIdList landmark_ids_extracted;
+  const vi_map::LandmarkIdList::iterator copy_iterator =
+      landmark_ids.begin() + FLAGS_ie_num_landmarks_per_map;
+  // std::copy(landmark_ids.begin(), copy_iterator, landmark_ids_extracted);
+  for (auto it = landmark_ids.begin(); it != copy_iterator; ++it) {
+    landmark_ids_extracted.push_back(*it);
+  }
+
+  const size_t split_pos =
+      FLAGS_ie_trainval_ratio * landmark_ids_extracted.size();
+  vi_map::LandmarkIdList train_ids;
+  vi_map::LandmarkIdList validation_ids;
+  const vi_map::LandmarkIdList::iterator split_iterator =
+      landmark_ids_extracted.begin() + split_pos;
+  for (auto it = landmark_ids_extracted.begin();
+       it != landmark_ids_extracted.end(); ++it) {
+    if (std::distance(it, split_iterator) > 0) {
+      train_ids.push_back(*it);
+    } else {
+      validation_ids.push_back(*it);
+    }
+  }
+
+  return true;
+}
 
 }  // namespace image_extraction_plugin
 

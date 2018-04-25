@@ -8,6 +8,8 @@
 #include <string>
 
 #include <console-common/console-plugin-base.h>
+#include <map-manager/map-manager.h>
+#include <vi-map/vi-map.h>
 
 namespace image_extraction_plugin {
 class ImageExtractionPlugin : public common::ConsolePluginBase {
@@ -20,6 +22,7 @@ class ImageExtractionPlugin : public common::ConsolePluginBase {
   int extractPatches() const;
   bool checkImageFlags() const;
   bool checkPatchFlags() const;
+  bool processPatches(const vi_map::VIMapManager::MapReadAccess map);
 };
 
 }  // namespace image_extraction_plugin
