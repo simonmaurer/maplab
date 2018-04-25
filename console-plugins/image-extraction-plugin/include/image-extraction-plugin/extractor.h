@@ -7,7 +7,12 @@
 
 #include <string>
 
+#include <opencv2/core.hpp>
+
 class Extractor {
+ private:
+  cv::Mat l;
+
  public:
   virtual void extract(const std::string& dir_path) const = 0;
 };
