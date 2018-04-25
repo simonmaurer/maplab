@@ -16,16 +16,16 @@
 //// Definition of flags for commands
 // global
 DEFINE_string(
-    image_extraction_output_dir, "",
+    ie_output_dir, "",
     "Path to the output directory where the images or .hdf5 files shall be "
     "exported. Defaults to input map directory");
 
 DEFINE_bool(
-    image_extraction_greyscale, false,
+    ie_greyscale, false,
     "Whether to extract images/patches as RGB or greyscale");
 
 DEFINE_double(
-    image_extraction_trainval_ratio, 1.0,
+    ie_trainval_ratio, 1.0,
     "Training vs validation data ratio for the dataset split."
     "Supported range: "
     "[0.0, 1.0], a value of 1.0 corresponds to outputting data to the "
@@ -33,14 +33,14 @@ DEFINE_double(
 
 // only supported by extract_images
 DEFINE_int32(
-    image_extraction_imagesize, -1,
+    ie_imagesize, -1,
     "Image size [px]"
     "Supported commands: "
     "extract_images "
     "Supported patch sizes: "
     "keep original image size = -1, 0-std::numeric_limits<int>::max()");
 DEFINE_int32(
-    image_extraction_num_images, 200,
+    ie_num_images, 200,
     "Number of images to extract per map"
     "Supported commands: "
     "extract_images "
@@ -49,14 +49,14 @@ DEFINE_int32(
 
 // only supported by extract_patches
 DEFINE_int32(
-    image_extraction_patchsize, 64,
+    ie_patchsize, 64,
     "Patch size [px]"
     "Supported commands: "
     "extract_patches "
     "Supported patch sizes: "
     "0-std::numeric_limits<int>::max()");
 DEFINE_int32(
-    image_extraction_num_landmarks_per_map, 64,
+    ie_num_landmarks_per_map, 64,
     "Number of landmarks/3d points per map to extract corresponding image "
     "patches from"
     "Supported commands: "
@@ -64,7 +64,7 @@ DEFINE_int32(
     "Supported number of landmarks: "
     "1 - number of landmarks per map");
 DEFINE_int32(
-    image_extraction_num_samples_per_landmark, 8,
+    ie_num_samples_per_landmark, 8,
     "Number of patch pairs/triplets per observed landmark"
     "Supported commands: "
     "extract_patches "
@@ -101,9 +101,6 @@ std::string ImageExtractionPlugin::getPluginId() const {
 
 int ImageExtractionPlugin::extractImages() const {
   std::string selected_map_key;
-  // This function will write the name of the selected map key into
-  // selected_map_key. The function will return false and print an error
-  // message if no map key is selected.
   if (!getSelectedMapKeyIfSet(&selected_map_key)) {
     return common::kStupidUserError;
   }
@@ -113,6 +110,7 @@ int ImageExtractionPlugin::extractImages() const {
   vi_map::VIMapManager map_manager;
   vi_map::VIMapManager::MapReadAccess map =
       map_manager.getMapReadAccess(selected_map_key);
+
   // ToDo load associated images of map (greyscale/RGB) and start
   // extraction
   vi_map::LandmarkIdList landmark_ids;
@@ -135,9 +133,6 @@ int ImageExtractionPlugin::extractImages() const {
 
 int ImageExtractionPlugin::extractPatches() const {
   std::string selected_map_key;
-  // This function will write the name of the selected map key into
-  // selected_map_key. The function will return false and print an error
-  // message if no map key is selected.
   if (!getSelectedMapKeyIfSet(&selected_map_key)) {
     return common::kStupidUserError;
   }
@@ -160,7 +155,9 @@ int ImageExtractionPlugin::extractPatches() const {
   return common::kSuccess;
 }
 
-checkPreconditions() const {}
+bool checkImageFlags() const {}
+
+bool checkPatchFlags() const {}
 
 }  // namespace image_extraction_plugin
 
