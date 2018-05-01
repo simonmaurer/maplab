@@ -64,7 +64,7 @@ DEFINE_int32(
     "extract_patches "
     "Supported patch sizes: "
     "0-std::numeric_limits<int>::max()");
-DEFINE_int64(
+DEFINE_uint64(
     ie_num_landmarks_per_map, 100,
     "Number of landmarks/3d points per map to extract corresponding image "
     "patches from"
@@ -113,7 +113,9 @@ int ImageExtractionPlugin::extractImages() const {
   if (!getSelectedMapKeyIfSet(&selected_map_key)) {
     return common::kStupidUserError;
   }
-
+  if (!validateGeneralFlags()) {
+    return common::kStupidUserError;
+  }
   if (!validateImageFlags()) {
     return common::kStupidUserError;
   }
@@ -145,16 +147,16 @@ int ImageExtractionPlugin::extractImages() const {
   }
 
   std::vector<cv::Mat> images;
+  const unsigned int frame_id = 0;  // id of camera frame
   for (const pose_graph::VertexId id : vertex_idx_extracted) {
     const vi_map::Vertex& vertex = map->getVertex(id);
     cv::Mat image;
+    cv::Mat_<float> l;
     if (FLAGS_ie_greyscale) {
-      // frame_id ???
-      const unsigned int frame_id = 1;
-      map->getRawImage(vertex, frame_id, &image);
-
+      // frame_id
+      map->getRawImage(vertex, frame_id, &l);
     } else {
-      map->getRawColorImage(vertex, 1, &image);
+      map->getRawColorImage(vertex, frame_id, &image);
     }
     images.push_back(image);
   }
@@ -189,6 +191,9 @@ int ImageExtractionPlugin::extractPatches() const {
   }
   // H5::H5File hh("lol", H5F_ACC_RDWR);
 
+  if (!validateGeneralFlags()) {
+    return common::kStupidUserError;
+  }
   if (!validatePatchFlags()) {
     return common::kStupidUserError;
   }
@@ -218,7 +223,7 @@ int ImageExtractionPlugin::extractPatches() const {
   return common::kSuccess;
 }
 
-bool ImageExtractionPlugin::validatePatchFlags() const {
+bool ImageExtractionPlugin::validateGeneralFlags() const {
   if (FLAGS_ie_trainval_ratio < 0.0 || FLAGS_ie_trainval_ratio > 1.0) {
     LOG(ERROR) << "Invalid value for parameter, please use values"
                   "in range [0.0, 1.0]";
@@ -255,8 +260,11 @@ bool ImageExtractionPlugin::processPatches(
   map->getAllLandmarkIds(&landmark_ids);
   const size_t num_map_landmarks = landmark_ids.size();
   std::cout << num_map_landmarks << std::endl;
-  if (FLAGS_ie_num_landmarks_per_map > num_map_landmarks)
+  if (FLAGS_ie_num_landmarks_per_map > num_map_landmarks) {
+    LOG(ERROR) << "--ie_num_landmarks_per_map, the number of landmarks per map"
+                  " specified exceeds the number of landmarks of the map!";
     return false;
+  }
 
   std::random_device rd;
   std::mt19937 generator(

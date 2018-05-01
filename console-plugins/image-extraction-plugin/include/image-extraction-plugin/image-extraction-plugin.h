@@ -23,7 +23,7 @@ class ImageExtractionPlugin : public common::ConsolePluginBase {
 
   int extractPatches() const;
 
-  bool validateFlags() const;
+  bool validateGeneralFlags() const;
 
   bool validateImageFlags() const;
 
