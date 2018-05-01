@@ -14,7 +14,7 @@
 namespace image_extraction_plugin {
 class ImageExtractionPlugin : public common::ConsolePluginBase {
  public:
-  explicit ImageExtractionPlugin(common::Console *console);
+  explicit ImageExtractionPlugin(common::Console* console);
 
   virtual std::string getPluginId() const;
 
@@ -23,13 +23,15 @@ class ImageExtractionPlugin : public common::ConsolePluginBase {
 
   int extractPatches() const;
 
-  bool checkImageFlags() const;
+  bool validateFlags() const;
 
-  bool checkPatchFlags() const;
+  bool validateImageFlags() const;
 
-  bool processPatches(const vi_map::VIMapManager::MapReadAccess &map) const;
+  bool validatePatchFlags() const;
 
-  bool processImages(const vi_map::VIMapManager::MapReadAccess &map) const;
+  bool processPatches(const vi_map::VIMapManager::MapReadAccess& map) const;
+
+  bool processImages(const vi_map::VIMapManager::MapReadAccess& map) const;
 };
 
 }  // namespace image_extraction_plugin

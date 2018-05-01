@@ -7,9 +7,9 @@
 #include <string>
 #include <vector>
 
-ImageWriter::ImageWriter(const std::string &train_dir,
-                         const std::string &validation_dir) :
-    train_dir(train_dir), val_dir(validation_dir) {}
+ImageWriter::ImageWriter(
+    const std::string& train_dir, const std::string& validation_dir)
+    : train_dir(train_dir), val_dir(validation_dir) {}
 
-void ImageWriter::extract(const std::string &dir_path,
-                          const std::vector<cv::Mat> &images) const {}
+void ImageWriter::extract(
+    const std::string& dir_path, const std::vector<cv::Mat>& images) const {}
