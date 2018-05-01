@@ -47,14 +47,14 @@ DEFINE_int32(
     "Supported commands: "
     "extract_images "
     "Supported patch sizes: "
-    "keep original image size = -1, 1-std::numeric_limits<int>::max()");
+    "keep original image size = -1, 1 - std::numeric_limits<int>::max()");
 DEFINE_int32(
     ie_num_images, -1,
     "Number of images to extract per map"
     "Supported commands: "
     "extract_images "
     "Supported number of images: "
-    "extract all images = -1, 1-number of vertices per map");
+    "extract all images = -1, 1 - <number of vertices per map>");
 
 // only supported by extract_patches
 DEFINE_int32(
@@ -63,7 +63,7 @@ DEFINE_int32(
     "Supported commands: "
     "extract_patches "
     "Supported patch sizes: "
-    "0-std::numeric_limits<int>::max()");
+    "1 - 1024");
 DEFINE_uint64(
     ie_num_landmarks_per_map, 100,
     "Number of landmarks/3d points per map to extract corresponding image "
@@ -71,14 +71,14 @@ DEFINE_uint64(
     "Supported commands: "
     "extract_patches "
     "Supported number of landmarks: "
-    "1 - number of landmarks per map");
+    "1 - <number of landmarks per map>");
 DEFINE_int32(
     ie_num_samples_per_landmark, 8,
     "Number of patch pairs/triplets per observed landmark"
     "Supported commands: "
     "extract_patches "
     "Supported number of samples per landmark: "
-    "1 - number of samples the landmark has been observed");
+    "1 - std::numeric_limits<int>::max()");
 
 namespace image_extraction_plugin {
 
@@ -223,6 +223,7 @@ int ImageExtractionPlugin::extractPatches() const {
   return common::kSuccess;
 }
 
+// Validate input flags (value range)
 bool ImageExtractionPlugin::validateGeneralFlags() const {
   if (FLAGS_ie_trainval_ratio < 0.0 || FLAGS_ie_trainval_ratio > 1.0) {
     LOG(ERROR) << "Invalid value for parameter, please use values"
@@ -235,8 +236,9 @@ bool ImageExtractionPlugin::validateGeneralFlags() const {
 bool ImageExtractionPlugin::validateImageFlags() const {
   if (FLAGS_ie_num_images < -1 ||
       FLAGS_ie_num_images > std::numeric_limits<int>::max()) {
-    LOG(ERROR) << "Invalid value for parameter, please use -1 to extract all"
-                  "images or parameter range[std::numeric_limits<int>::max()]";
+    LOG(ERROR)
+        << "Invalid value for parameter, please use -1 to extract all"
+           "images or parameter range: [1, std::numeric_limits<int>::max()]";
     return false;
   }
   if (FLAGS_ie_imagesize < -1 ||
@@ -251,9 +253,28 @@ bool ImageExtractionPlugin::validateImageFlags() const {
 }
 
 bool ImageExtractionPlugin::validatePatchFlags() const {
+  if (FLAGS_ie_patchsize < 1 || FLAGS_ie_patchsize > 1024) {
+    LOG(ERROR) << "Invalid value for parameter, please use a value from"
+                  "parameter range: [1, 1024]";
+    return false;
+  }
+  if (FLAGS_ie_num_landmarks_per_map < 1 ||
+      FLAGS_ie_num_landmarks_per_map > std::numeric_limits<uint64_t>::max()) {
+    LOG(ERROR) << "Invalid value for parameter, please use a value from"
+                  " parameter range [1, std::numeric_limits<uint64_t>::max()]";
+    return false;
+  }
+  if (FLAGS_ie_num_samples_per_landmark < 1 ||
+      FLAGS_ie_num_samples_per_landmark > std::numeric_limits<int>::max()) {
+    LOG(ERROR) << "Invalid value for parameter, please use a value from"
+                  " parameter range [1, std::numeric_limits<int>::max()]";
+    return false;
+  }
+
   return true;
 }
 
+// Delegation of image/patch extraction
 bool ImageExtractionPlugin::processPatches(
     const vi_map::VIMapManager::MapReadAccess& map) const {
   vi_map::LandmarkIdList landmark_ids;
@@ -261,8 +282,9 @@ bool ImageExtractionPlugin::processPatches(
   const size_t num_map_landmarks = landmark_ids.size();
   std::cout << num_map_landmarks << std::endl;
   if (FLAGS_ie_num_landmarks_per_map > num_map_landmarks) {
-    LOG(ERROR) << "--ie_num_landmarks_per_map, the number of landmarks per map"
-                  " specified exceeds the number of landmarks of the map!";
+    LOG(ERROR)
+        << "--ie_num_landmarks_per_map, the specified number of landmarks"
+           " exceeds the number of landmarks of the map!";
     return false;
   }
 
