@@ -18,9 +18,12 @@
 #include <vi-map/vi-map.h>
 // #include <vi-map/vertex-inl.h>
 
+#include <boost/filesystem.hpp>
 #include <opencv2/core.hpp>
 // #include <hdf5>
 // #include "H5Cpp.h"
+
+namespace fs = boost::filesystem;
 
 //// Definition of flags for commands
 // supported by extract_images/extract_patches
@@ -85,7 +88,7 @@ namespace image_extraction_plugin {
 ImageExtractionPlugin::ImageExtractionPlugin(common::Console* console)
     : common::ConsolePluginBase(console) {
   addCommand(
-      {"extract_images"}, [this]() -> int { return extractImages(); },
+      {"extract_images", "ei"}, [this]() -> int { return extractImages(); },
       "This command extracts images or patches of matching/non-matching "
       "keypoint "
       "pairs/triplets corresponding to same 3d points of a loaded map. "
@@ -94,7 +97,7 @@ ImageExtractionPlugin::ImageExtractionPlugin(common::Console* console)
       "--patch_size/-P",
       common::Processing::Sync);
   addCommand(
-      {"extract_patches"}, [this]() -> int { return extractPatches(); },
+      {"extract_patches", "ep"}, [this]() -> int { return extractPatches(); },
       "This command extracts images or patches of matching/non-matching "
       "keypoint "
       "pairs/triplets corresponding to same 3d points of a loaded map. "
@@ -109,11 +112,12 @@ std::string ImageExtractionPlugin::getPluginId() const {
 }
 
 int ImageExtractionPlugin::extractImages() const {
+  vi_map::VIMapManager map_manager;
   std::string selected_map_key;
   if (!getSelectedMapKeyIfSet(&selected_map_key)) {
     return common::kStupidUserError;
   }
-  if (!validateGeneralFlags()) {
+  if (!validateGeneralFlags(map_manager, selected_map_key)) {
     return common::kStupidUserError;
   }
   if (!validateImageFlags()) {
@@ -121,10 +125,9 @@ int ImageExtractionPlugin::extractImages() const {
   }
   std::cout << "Image extraction in progress.." << std::endl;
 
-  vi_map::VIMapManager map_manager;
   vi_map::VIMapManager::MapReadAccess map =
       map_manager.getMapReadAccess(selected_map_key);
-  processPatches(map);  //???
+  // processPatches(map);  //???
 
   pose_graph::VertexIdList vertex_idx;
   map->getAllVertexIds(&vertex_idx);
@@ -148,13 +151,12 @@ int ImageExtractionPlugin::extractImages() const {
 
   std::vector<cv::Mat> images;
   const unsigned int frame_id = 0;  // id of camera frame
-  for (const pose_graph::VertexId id : vertex_idx_extracted) {
+  for (const pose_graph::VertexId& id : vertex_idx_extracted) {
     const vi_map::Vertex& vertex = map->getVertex(id);
     cv::Mat image;
-    cv::Mat_<float> l;
     if (FLAGS_ie_greyscale) {
       // frame_id
-      map->getRawImage(vertex, frame_id, &l);
+      map->getRawImage(vertex, frame_id, &image);
     } else {
       map->getRawColorImage(vertex, frame_id, &image);
     }
@@ -185,21 +187,22 @@ int ImageExtractionPlugin::extractImages() const {
 }
 
 int ImageExtractionPlugin::extractPatches() const {
+  vi_map::VIMapManager map_manager;
   std::string selected_map_key;
   if (!getSelectedMapKeyIfSet(&selected_map_key)) {
     return common::kStupidUserError;
   }
   // H5::H5File hh("lol", H5F_ACC_RDWR);
 
-  if (!validateGeneralFlags()) {
+  if (!validateGeneralFlags(map_manager, selected_map_key)) {
     return common::kStupidUserError;
   }
   if (!validatePatchFlags()) {
     return common::kStupidUserError;
   }
+
   std::cout << "Patch extraction in progress.." << std::endl;
 
-  vi_map::VIMapManager map_manager;
   const vi_map::VIMapManager::MapReadAccess map =
       map_manager.getMapReadAccess(selected_map_key);
   // processPatches(map);
@@ -224,29 +227,62 @@ int ImageExtractionPlugin::extractPatches() const {
 }
 
 // Validate input flags (value range)
-bool ImageExtractionPlugin::validateGeneralFlags() const {
+bool ImageExtractionPlugin::validateGeneralFlags(
+    const vi_map::VIMapManager& map_manager, const std::string& map_key) const {
   if (FLAGS_ie_trainval_ratio < 0.0 || FLAGS_ie_trainval_ratio > 1.0) {
     LOG(ERROR) << "Invalid value for parameter, please use values"
                   "in range [0.0, 1.0]";
     return false;
   }
+
+  std::string output_path;
+  if (FLAGS_ie_output_dir == "") {
+    map_manager.getMapFolder(map_key, &output_path);
+  } else {
+    output_path = FLAGS_ie_output_dir;
+  }
+  const fs::path output_dir(output_path);
+  /*if (!fs::is_directory(output_dir)) {
+    // LOG(ERROR) << "Invalid value for parameter --ie_output_dir, "
+              //    << output_path << " is not a valid directory.";
+    return false;
+  }*/
+  std::cout << "output directory: " << FLAGS_ie_output_dir << std::endl;
+  std::cout << "extract greyscale: " << std::boolalpha << FLAGS_ie_greyscale
+            << std::endl;
+  std::cout << "training/validation set ratio: " << FLAGS_ie_trainval_ratio
+            << std::endl;
+
   return true;
 }
 
 bool ImageExtractionPlugin::validateImageFlags() const {
-  if (FLAGS_ie_num_images < -1 ||
+  if (FLAGS_ie_num_images < -1 || FLAGS_ie_num_images == 0 ||
       FLAGS_ie_num_images > std::numeric_limits<int>::max()) {
     LOG(ERROR)
         << "Invalid value for parameter, please use -1 to extract all"
            "images or parameter range: [1, std::numeric_limits<int>::max()]";
     return false;
   }
-  if (FLAGS_ie_imagesize < -1 ||
+  if (FLAGS_ie_imagesize < -1 || FLAGS_ie_num_images == 0 ||
       FLAGS_ie_imagesize > std::numeric_limits<int>::max()) {
     LOG(ERROR) << "Invalid value for parameter, please use -1 to keep original"
                   " size or parameter range [std::numeric_limits<int>::max()]"
                   " for resizing to square image, e.g. 224x224";
     return false;
+  }
+
+  if (FLAGS_ie_num_images == -1) {
+    std::cout << "number of images to extract: all" << std::endl;
+  } else {
+    std::cout << "number of images to extract: " << FLAGS_ie_num_images
+              << std::endl;
+  }
+  if (FLAGS_ie_imagesize == -1) {
+    std::cout << "target image size: keep original size" << std::endl;
+  } else {
+    std::cout << "target image size: " << FLAGS_ie_imagesize << "x"
+              << FLAGS_ie_imagesize << std::endl;
   }
 
   return true;
@@ -270,6 +306,12 @@ bool ImageExtractionPlugin::validatePatchFlags() const {
                   " parameter range [1, std::numeric_limits<int>::max()]";
     return false;
   }
+
+  std::cout << "target patch size: " << FLAGS_ie_patchsize << std::endl;
+  std::cout << "number of landmarks to extract patches from: "
+            << FLAGS_ie_num_landmarks_per_map << std::endl;
+  std::cout << "minimum number of samples a landmark has been observed from: "
+            << FLAGS_ie_num_samples_per_landmark << std::endl;
 
   return true;
 }

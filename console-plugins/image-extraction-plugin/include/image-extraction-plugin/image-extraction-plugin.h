@@ -23,7 +23,9 @@ class ImageExtractionPlugin : public common::ConsolePluginBase {
 
   int extractPatches() const;
 
-  bool validateGeneralFlags() const;
+  bool validateGeneralFlags(
+      const vi_map::VIMapManager& map_manager,
+      const std::string& map_key) const;
 
   bool validateImageFlags() const;
 
