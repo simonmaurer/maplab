@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <string>
+#include <limits>
 
 #include <algorithm>
 #include <iterator>
@@ -14,10 +15,11 @@
 #include <console-common/console-plugin-base.h>
 #include <map-manager/map-manager.h>
 #include <vi-map/vi-map.h>
+#include <vi-map/vertex.h>
+// #include <vi-map/vertex-inl.h>
 
 #include <opencv2/core.hpp>
 // #include <hdf5>
-// #include "H5Cpp.h"
 // #include "H5Cpp.h"
 
 //// Definition of flags for commands
@@ -45,14 +47,14 @@ DEFINE_int32(
     "Supported commands: "
     "extract_images "
     "Supported patch sizes: "
-    "keep original image size = -1, 0-std::numeric_limits<int>::max()");
+    "keep original image size = -1, 1-std::numeric_limits<int>::max()");
 DEFINE_int32(
-    ie_num_images, 200,
+    ie_num_images, -1,
     "Number of images to extract per map"
     "Supported commands: "
     "extract_images "
     "Supported number of images: "
-    "1 - number of vertices per map");
+    "extract all images = -1, 1-number of vertices per map");
 
 // only supported by extract_patches
 DEFINE_int32(
@@ -80,7 +82,7 @@ DEFINE_int32(
 
 namespace image_extraction_plugin {
 
-ImageExtractionPlugin::ImageExtractionPlugin(common::Console* console)
+ImageExtractionPlugin::ImageExtractionPlugin(common::Console *console)
     : common::ConsolePluginBase(console) {
   addCommand(
       {"extract_images"}, [this]() -> int { return extractImages(); },
@@ -112,30 +114,68 @@ int ImageExtractionPlugin::extractImages() const {
     return common::kStupidUserError;
   }
 
+  if (!checkImageFlags()) {
+    return common::kStupidUserError;
+  }
   std::cout << "Image extraction in progress.." << std::endl;
 
   vi_map::VIMapManager map_manager;
   vi_map::VIMapManager::MapReadAccess map =
       map_manager.getMapReadAccess(selected_map_key);
+  processPatches(map);       //???
+
+  pose_graph::VertexIdList vertex_idx;
+  map->getAllVertexIds(&vertex_idx);
+  const int num_vertices = vertex_idx.size();
+  if (FLAGS_ie_num_images > num_vertices) {
+    LOG(ERROR) << "--ie_num_images, the number of images"
+                  " specified exceeds the number of vertices!";
+    return common::kStupidUserError;
+  }
+
+  pose_graph::VertexIdList vertex_idx_extracted;
+  int num_images_to_extract = FLAGS_ie_num_images;
+  if (FLAGS_ie_num_images == -1) {
+    num_images_to_extract = num_vertices;
+  }
+  const pose_graph::VertexIdList::iterator copy_iterator =
+      vertex_idx.begin() + num_images_to_extract;
+  for (auto it = vertex_idx.begin(); it != copy_iterator; ++it) {
+    vertex_idx_extracted.push_back(*it);
+  }
+
+  std::vector<cv::Mat> images;
+  for (const pose_graph::VertexId id : vertex_idx_extracted) {
+    const vi_map::Vertex &vertex = map->getVertex(id);
+    cv::Mat image;
+    if (FLAGS_ie_greyscale) {
+      // frame_id ???
+      const unsigned int frame_id = 1;
+      map->getRawImage(vertex, frame_id, &image);
+
+    } else {
+      map->getRawColorImage(vertex, 1, &image);
+    }
+    images.push_back(image);
+  }
+  std::cout << "Extracted " << images.size() << " images from map: "
+  << selected_map_key << std::endl;
 
   // ToDo load associated images of map (greyscale/RGB) and start
-  // extraction
+  /*
   vi_map::LandmarkIdList landmark_ids;
   map->getAllLandmarkIds(&landmark_ids);
-  std::cout << "# landmarks in total: " << landmark_ids.size() << std::endl;
+  std::cout << "# total landmarks in total: " << landmark_ids.size() << std::endl;
   std::vector<std::string> map_keys;
   map_manager.getAllMapKeys(&map_keys);
   for (const std::string map_key : map_keys) {
-    std::cout << "map key: " << map_key << std::endl;
-  }
+      std::cout << "map key: " << map_key << std::endl;
+  }*/
 
   std::string map_path;
   map_manager.getMapFolder(selected_map_key, &map_path);
-  std::cout << "map path: " << map_path << std::endl;
+  std::cout << "Saved images to folder: " << map_path << std::endl;
 
-  int num_landmarks_per_mape = 0;
-  std::cout << "num_landmarks_per_map FLAG: " << FLAGS_ie_num_landmarks_per_map
-            << std::endl;
 
   // Other commonly used return values are common::kUnknownError and
   // common::kStupidUserError.
@@ -147,6 +187,8 @@ int ImageExtractionPlugin::extractPatches() const {
   if (!getSelectedMapKeyIfSet(&selected_map_key)) {
     return common::kStupidUserError;
   }
+  // H5::H5File hh("lol", H5F_ACC_RDWR);
+
 
   if (!checkPatchFlags()) {
     return common::kStupidUserError;
@@ -157,6 +199,9 @@ int ImageExtractionPlugin::extractPatches() const {
   const vi_map::VIMapManager::MapReadAccess map =
       map_manager.getMapReadAccess(selected_map_key);
   // processPatches(map);
+  // vi_map_helpers::VIMapQueries queries(*map);
+  vi_map::Vertex v;
+  vi_map::Landmark l;
 
   // Shuffle
 
@@ -175,6 +220,20 @@ int ImageExtractionPlugin::extractPatches() const {
 }
 
 bool ImageExtractionPlugin::checkImageFlags() const {
+  if (FLAGS_ie_num_images < -1 ||
+      FLAGS_ie_num_images > std::numeric_limits<int>::max()) {
+    LOG(ERROR) << "Wrong value for parameter, please use -1 to extract all"
+                  "images or parameter range[std::numeric_limits<int>::max()]";
+    return false;
+  }
+  if (FLAGS_ie_imagesize < -1 ||
+      FLAGS_ie_imagesize > std::numeric_limits<int>::max()) {
+    LOG(ERROR) << "Wrong value for parameter, please use -1 to keep original"
+                  " size or parameter range [std::numeric_limits<int>::max()]"
+                  " for resizing to square image, e.g. 224x224";
+    return false;
+  }
+
   return true;
 }
 
@@ -183,7 +242,7 @@ bool ImageExtractionPlugin::checkPatchFlags() const {
 }
 
 bool ImageExtractionPlugin::processPatches(
-    const vi_map::VIMapManager::MapReadAccess map) {
+    const vi_map::VIMapManager::MapReadAccess &map) const {
   vi_map::LandmarkIdList landmark_ids;
   map->getAllLandmarkIds(&landmark_ids);
   const size_t num_map_landmarks = landmark_ids.size();

@@ -1,5 +1,5 @@
 //
-// Created by similuke on 23.04.18.
+// Created by Simon Maurer on 23.04.18.
 //
 
 #ifndef IMAGE_EXTRACTION_PLUGIN_IMAGE_EXTRACTION_PLUGIN_H_
@@ -14,15 +14,22 @@
 namespace image_extraction_plugin {
 class ImageExtractionPlugin : public common::ConsolePluginBase {
  public:
-  explicit ImageExtractionPlugin(common::Console* console);
+  explicit ImageExtractionPlugin(common::Console *console);
+
   virtual std::string getPluginId() const;
 
  private:
   int extractImages() const;
+
   int extractPatches() const;
+
   bool checkImageFlags() const;
+
   bool checkPatchFlags() const;
-  bool processPatches(const vi_map::VIMapManager::MapReadAccess map);
+
+  bool processPatches(const vi_map::VIMapManager::MapReadAccess &map) const;
+
+  bool processImages(const vi_map::VIMapManager::MapReadAccess &map) const;
 };
 
 }  // namespace image_extraction_plugin

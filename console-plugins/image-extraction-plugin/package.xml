@@ -12,4 +12,5 @@
   <depend>console_common</depend>
   <depend>map_manager</depend>
   <depend>vi_map</depend>
+  <depend>hdf5_catkin</depend>
 </package>
