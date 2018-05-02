@@ -19,21 +19,25 @@ class ImageExtractionPlugin : public common::ConsolePluginBase {
   virtual std::string getPluginId() const;
 
  private:
+  // Command methods
   int extractImages() const;
-
   int extractPatches() const;
 
+  // Flag validation methods
   bool validateGeneralFlags(
       const vi_map::VIMapManager& map_manager,
       const std::string& map_key) const;
-
   bool validateImageFlags() const;
-
   bool validatePatchFlags() const;
 
+  // Delegatin methods
+  bool processImages(const vi_map::VIMapManager::MapReadAccess& map) const;
   bool processPatches(const vi_map::VIMapManager::MapReadAccess& map) const;
 
-  bool processImages(const vi_map::VIMapManager::MapReadAccess& map) const;
+  // Landmark/Vertex acquisition methods
+  void acquireVertices(
+      const vi_map::VIMapManager::MapReadAccess& map,
+      const vi_map::LandmarkIdList& landmark_idx) const;
 };
 
 }  // namespace image_extraction_plugin

@@ -8,6 +8,6 @@
 #include <string>
 
 struct Config {
-  std::string output_path
+  std::string output_path;
 };
 #endif  // IMAGE_EXTRACTION_PLUGIN_CONFIG_H_

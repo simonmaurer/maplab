@@ -305,7 +305,7 @@ bool ImageExtractionPlugin::processPatches(
   vi_map::LandmarkIdList landmark_ids;
   map->getAllLandmarkIds(&landmark_ids);
   const size_t num_map_landmarks = landmark_ids.size();
-  std::cout << "# landmarks in total: " << num_map_landmarks << std::endl;
+  std::cout << "# landmarks in map: " << num_map_landmarks << std::endl;
   if (FLAGS_ie_num_landmarks_per_map > num_map_landmarks) {
     LOG(ERROR)
         << "--ie_num_landmarks_per_map, the specified number of landmarks"
@@ -314,33 +314,62 @@ bool ImageExtractionPlugin::processPatches(
   }
 
   std::random_device rd;
-  std::mt19937 generator(
-      rd());  // which is why we define the method as non-const
+  std::mt19937 generator(rd());
   std::shuffle(landmark_ids.begin(), landmark_ids.end(), generator);
-  vi_map::LandmarkIdList landmark_ids_extracted;
+  vi_map::LandmarkIdList landmark_idx_extracted;
   const vi_map::LandmarkIdList::iterator copy_iterator =
       landmark_ids.begin() + FLAGS_ie_num_landmarks_per_map;
   // std::copy(landmark_ids.begin(), copy_iterator, landmark_ids_extracted);
   for (auto it = landmark_ids.begin(); it != copy_iterator; ++it) {
-    landmark_ids_extracted.push_back(*it);
+    landmark_idx_extracted.push_back(*it);
   }
 
+  // Splitting landmarks into training and validation set
   const size_t split_pos =
-      FLAGS_ie_trainval_ratio * landmark_ids_extracted.size();
-  vi_map::LandmarkIdList train_ids;
-  vi_map::LandmarkIdList validation_ids;
+      FLAGS_ie_trainval_ratio * landmark_idx_extracted.size();
+  vi_map::LandmarkIdList train_idx;
+  vi_map::LandmarkIdList validation_idx;
   const vi_map::LandmarkIdList::iterator split_iterator =
-      landmark_ids_extracted.begin() + split_pos;
-  for (auto it = landmark_ids_extracted.begin();
-       it != landmark_ids_extracted.end(); ++it) {
+      landmark_idx_extracted.begin() + split_pos;
+  for (auto it = landmark_idx_extracted.begin();
+       it != landmark_idx_extracted.end(); ++it) {
     if (std::distance(it, split_iterator) > 0) {
-      train_ids.push_back(*it);
+      train_idx.push_back(*it);
     } else {
-      validation_ids.push_back(*it);
+      validation_idx.push_back(*it);
     }
   }
 
+  // For each landmark get its observer vertices
+  acquireVertices(map, train_idx);
+  acquireVertices(map, validation_idx);
+
   return true;
+}
+
+void acquireVertices(
+    const vi_map::VIMapManager::MapReadAccess& map,
+    const vi_map::LandmarkIdList& landmark_idx) {
+  const unsigned int frame_id = 0;  // id of camera frame
+  for (auto& l_id : landmark_idx) {
+    pose_graph::VertexIdSet observer_vertices;
+    map->getLandmarkObserverVertices(l_id, &observer_vertices);
+    // Quality of landmark, only accept it
+    // if there is a minimum number of vertices observing the landmark
+    if (observer_vertices.size() < FLAGS_ie_num_samples_per_landmark)
+      continue;
+
+    for (auto& v_id : observer_vertices) {
+      const vi_map::Vertex vertex = map->getVertex(v_id);
+      cv::Mat image;
+      if (FLAGS_ie_greyscale) {
+        // frame_id
+        map->getRawImage(vertex, frame_id, &image);
+      } else {
+        map->getRawColorImage(vertex, frame_id, &image);
+      }
+    }
+  }
 }
 
 }  // namespace image_extraction_plugin
