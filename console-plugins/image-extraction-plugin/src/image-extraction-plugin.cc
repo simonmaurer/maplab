@@ -35,7 +35,7 @@ DEFINE_string(
 
 DEFINE_bool(
     ie_greyscale, false,
-    "Whether to extract images/patches as RGB or greyscale");
+    "Whether to extract images/patches as RGB or greyscale.");
 
 DEFINE_double(
     ie_trainval_ratio, 1.0,
@@ -43,6 +43,11 @@ DEFINE_double(
     "Supported range: "
     "[0.0, 1.0], a value of 1.0 corresponds to outputting data to the "
     "training set only");
+
+DEFINE_bool(
+    ie_verbose, true,
+    "If set to true outputs map/landmark statistics"
+    " while extracting images/patches.");
 
 // only supported by extract_images
 DEFINE_int32(
@@ -166,17 +171,6 @@ int ImageExtractionPlugin::extractImages() const {
   std::cout << "Extracted " << images.size()
             << " images from map: " << selected_map_key << std::endl;
 
-  // ToDo load associated images of map (greyscale/RGB) and start
-  /*
-  vi_map::LandmarkIdList landmark_ids;
-  map->getAllLandmarkIds(&landmark_ids);
-  std::cout << "# total landmarks in total: " << landmark_ids.size() <<
-  std::endl;
-  std::vector<std::string> map_keys;
-  map_manager.getAllMapKeys(&map_keys);
-  for (const std::string map_key : map_keys) {
-      std::cout << "map key: " << map_key << std::endl;
-  }*/
 
   std::string map_path;
   map_manager.getMapFolder(selected_map_key, &map_path);
@@ -193,7 +187,6 @@ int ImageExtractionPlugin::extractPatches() const {
   if (!getSelectedMapKeyIfSet(&selected_map_key)) {
     return common::kStupidUserError;
   }
-  // H5::H5File hh("lol", H5F_ACC_RDWR);
 
   if (!validateGeneralFlags(map_manager, selected_map_key)) {
     return common::kStupidUserError;
@@ -201,27 +194,16 @@ int ImageExtractionPlugin::extractPatches() const {
   if (!validatePatchFlags()) {
     return common::kStupidUserError;
   }
-
   std::cout << "Patch extraction in progress.." << std::endl;
 
   const vi_map::VIMapManager::MapReadAccess map =
       map_manager.getMapReadAccess(selected_map_key);
-  // processPatches(map);
+
+  if (!processPatches(map)) {
+    return common::kStupidUserError;
+  }
   // vi_map_helpers::VIMapQueries queries(*map);
-  vi_map::Vertex v;
-  vi_map::Landmark l;
 
-  // Shuffle
-
-  /*
-          // ToDo load associated images of map (greyscale/RGB) and start
-          // extraction
-          std::cout << map->numMissions() << std::endl;
-
-          std::string map_path;
-          map_manager.getMapFolder(selected_map_key, &map_path);
-          std::cout << "map path: " << map_path << std::endl;
-  */
   // Other commonly used return values are common::kUnknownError and
   // common::kStupidUserError.
   return common::kSuccess;
@@ -323,7 +305,7 @@ bool ImageExtractionPlugin::processPatches(
   vi_map::LandmarkIdList landmark_ids;
   map->getAllLandmarkIds(&landmark_ids);
   const size_t num_map_landmarks = landmark_ids.size();
-  std::cout << num_map_landmarks << std::endl;
+  std::cout << "# landmarks in total: " << num_map_landmarks << std::endl;
   if (FLAGS_ie_num_landmarks_per_map > num_map_landmarks) {
     LOG(ERROR)
         << "--ie_num_landmarks_per_map, the specified number of landmarks"
