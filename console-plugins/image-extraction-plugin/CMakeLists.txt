@@ -6,7 +6,11 @@ find_package(catkin_simple REQUIRED)
 #catkin_simple()
 catkin_simple(ALL_DEPS_REQUIRED)
 
-add_definitions(-fPIC -shared)
+#add_definitions(-fPIC -shared)
+
+MESSAGE("CMAKE CXX flags: " ${CMAKE_CXX_FLAGS})
+SET(CMAKE_CXX_FLAGS "-std=c++11")
+MESSAGE("CMAKE CXX flags: " ${CMAKE_CXX_FLAGS})
 
 #find_package(hdf5_catkin REQUIRED)
 #set(HDF5_INCLUDE_DIRS "/usr/local/hdf5/include")
@@ -18,10 +22,18 @@ add_definitions(-fPIC -shared)
 #link_libraries(hdf5)
 #link_libraries(hdf5_hs_cpp)
 
+set(Boost_INCLUDE_DIRS /usr/include)
+set(Boost_LIBRARY_DIRS /usr/lib)
+#set(Boost_USE_STATIC_LIBS   ON)
+#find_package(Boost COMPONENTS filesystem REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})      # set manually since mixes /usr/local/include with /usr/lib/x86_64-linux-gnu
+link_directories(${Boost_LIBRARY_DIRS})
+
 
 cs_add_library(${PROJECT_NAME} src/image-extraction-plugin.cc src/hdf5_handler.cc src/image_handler.cc)
-#target_link_libraries(${PROJECT_NAME} ${HDF5_LIBRARIES})
-#target_link_libraries(${PROJECT_NAME} hdf5 hdf5_cpp hdf5_hl_cpp)
+#target_link_libraries(${PROJECT_NAME} hdf5 hdf5_cpp hdf5_hl_cpp)   # no need since package depends on hdf5_catkin
+target_link_libraries(${PROJECT_NAME} boost_filesystem boost_system)
+#target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 create_console_plugin(${PROJECT_NAME})
 
 FILE(GLOB_RECURSE LibFiles "include/*")
@@ -45,6 +57,15 @@ add_custom_target(headers SOURCES ${LibFiles})
 #MESSAGE("HDF5 libs: " ${HDF5_LIBRARIES})
 #MESSAGE("HDF5 C libs: " ${HDF5_C_LIBRARIES})
 #MESSAGE("HDF5 C++ libs: " ${HDF5_CXX_LIBRARIES})
+
+## Boost
+MESSAGE("Boost library found: " ${Boost_FOUND})
+MESSAGE("Boost version: " ${Boost_VERSION})
+MESSAGE("Boost include dirs: " ${Boost_INCLUDE_DIRS})
+MESSAGE("Boost library dirs: " ${Boost_LIBRARY_DIRS})
+MESSAGE("Boost libs: " ${Boost_LIBRARIES})
+MESSAGE("CMAKE version: " ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
+
 
 ## Set include and lib paths
 #include_directories({OpenCV_INCLUDE_DIR})

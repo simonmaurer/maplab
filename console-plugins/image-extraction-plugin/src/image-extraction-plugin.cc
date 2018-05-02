@@ -19,11 +19,12 @@
 // #include <vi-map/vertex-inl.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
 #include <opencv2/core.hpp>
 // #include <hdf5>
 // #include "H5Cpp.h"
 
-namespace fs = boost::filesystem;
+// namespace fs = boost::filesystem;
 
 //// Definition of flags for commands
 // supported by extract_images/extract_patches
@@ -235,19 +236,19 @@ bool ImageExtractionPlugin::validateGeneralFlags(
     return false;
   }
 
-  std::string output_path;
+  std::string output_dir;
   if (FLAGS_ie_output_dir == "") {
-    map_manager.getMapFolder(map_key, &output_path);
+    map_manager.getMapFolder(map_key, &output_dir);
   } else {
-    output_path = FLAGS_ie_output_dir;
+    output_dir = FLAGS_ie_output_dir;
   }
-  const fs::path output_dir(output_path);
-  /*if (!fs::is_directory(output_dir)) {
-    // LOG(ERROR) << "Invalid value for parameter --ie_output_dir, "
-              //    << output_path << " is not a valid directory.";
+  const boost::filesystem::path output_path(output_dir);
+  if (!(boost::filesystem::is_directory(output_path))) {
+    LOG(ERROR) << "Invalid value for parameter --ie_output_dir, " << output_dir
+               << " is not a valid directory.";
     return false;
-  }*/
-  std::cout << "output directory: " << FLAGS_ie_output_dir << std::endl;
+  }
+  std::cout << "output directory: " << output_dir << std::endl;
   std::cout << "extract greyscale: " << std::boolalpha << FLAGS_ie_greyscale
             << std::endl;
   std::cout << "training/validation set ratio: " << FLAGS_ie_trainval_ratio
