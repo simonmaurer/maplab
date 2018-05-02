@@ -9,8 +9,8 @@ catkin_simple(ALL_DEPS_REQUIRED)
 #add_definitions(-fPIC -shared)
 
 MESSAGE("CMAKE CXX flags: " ${CMAKE_CXX_FLAGS})
-SET(CMAKE_CXX_FLAGS "-std=c++11")
-MESSAGE("CMAKE CXX flags: " ${CMAKE_CXX_FLAGS})
+# SET(CMAKE_CXX_FLAGS "-std=c++11")
+# MESSAGE("CMAKE CXX flags: " ${CMAKE_CXX_FLAGS})
 
 #find_package(hdf5_catkin REQUIRED)
 #set(HDF5_INCLUDE_DIRS "/usr/local/hdf5/include")
@@ -30,9 +30,10 @@ include_directories(${Boost_INCLUDE_DIRS})      # set manually since mixes /usr/
 link_directories(${Boost_LIBRARY_DIRS})
 
 
-cs_add_library(${PROJECT_NAME} src/image-extraction-plugin.cc src/hdf5_handler.cc src/image_handler.cc)
+cs_add_library(${PROJECT_NAME} src/image-extraction-plugin.cc src/hdf5_handler.cc
+        src/image_handler.cc src/config.cc)
 #target_link_libraries(${PROJECT_NAME} hdf5 hdf5_cpp hdf5_hl_cpp)   # no need since package depends on hdf5_catkin
-target_link_libraries(${PROJECT_NAME} boost_filesystem boost_system)
+target_link_libraries(${PROJECT_NAME} boost_filesystem boost_system boost_date_time)
 #target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 create_console_plugin(${PROJECT_NAME})
 

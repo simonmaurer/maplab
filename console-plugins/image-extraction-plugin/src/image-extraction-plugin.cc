@@ -24,7 +24,7 @@
 // #include <hdf5>
 // #include "H5Cpp.h"
 
-// namespace fs = boost::filesystem;
+namespace fs = boost::filesystem;
 
 //// Definition of flags for commands
 // supported by extract_images/extract_patches
@@ -123,14 +123,17 @@ int ImageExtractionPlugin::extractImages() const {
   if (!getSelectedMapKeyIfSet(&selected_map_key)) {
     return common::kStupidUserError;
   }
-  if (!validateGeneralFlags(map_manager, selected_map_key)) {
-    return common::kStupidUserError;
-  }
   if (!validateImageFlags()) {
     return common::kStupidUserError;
   }
+  if (!validateGeneralFlags()) {
+    return common::kStupidUserError;
+  }
+
   std::cout << "Image extraction in progress.." << std::endl;
 
+  Config config = init(map_manager, selected_map_key);
+  std::cout << "lölölö" << std::endl;
   vi_map::VIMapManager::MapReadAccess map =
       map_manager.getMapReadAccess(selected_map_key);
   // processPatches(map);  //???
@@ -187,15 +190,16 @@ int ImageExtractionPlugin::extractPatches() const {
   if (!getSelectedMapKeyIfSet(&selected_map_key)) {
     return common::kStupidUserError;
   }
-
-  if (!validateGeneralFlags(map_manager, selected_map_key)) {
-    return common::kStupidUserError;
-  }
   if (!validatePatchFlags()) {
     return common::kStupidUserError;
   }
+  if (!validateGeneralFlags()) {
+    return common::kStupidUserError;
+  }
+
   std::cout << "Patch extraction in progress.." << std::endl;
 
+  Config config = init(map_manager, selected_map_key);
   const vi_map::VIMapManager::MapReadAccess map =
       map_manager.getMapReadAccess(selected_map_key);
 
@@ -210,27 +214,13 @@ int ImageExtractionPlugin::extractPatches() const {
 }
 
 // Validate input flags (value range)
-bool ImageExtractionPlugin::validateGeneralFlags(
-    const vi_map::VIMapManager& map_manager, const std::string& map_key) const {
+bool ImageExtractionPlugin::validateGeneralFlags() const {
   if (FLAGS_ie_trainval_ratio < 0.0 || FLAGS_ie_trainval_ratio > 1.0) {
     LOG(ERROR) << "Invalid value for parameter, please use values"
                   "in range [0.0, 1.0]";
     return false;
   }
 
-  std::string output_dir;
-  if (FLAGS_ie_output_dir == "") {
-    map_manager.getMapFolder(map_key, &output_dir);
-  } else {
-    output_dir = FLAGS_ie_output_dir;
-  }
-  const boost::filesystem::path output_path(output_dir);
-  if (!(boost::filesystem::is_directory(output_path))) {
-    LOG(ERROR) << "Invalid value for parameter --ie_output_dir, " << output_dir
-               << " is not a valid directory.";
-    return false;
-  }
-  std::cout << "output directory: " << output_dir << std::endl;
   std::cout << "extract greyscale: " << std::boolalpha << FLAGS_ie_greyscale
             << std::endl;
   std::cout << "training/validation set ratio: " << FLAGS_ie_trainval_ratio
@@ -300,6 +290,30 @@ bool ImageExtractionPlugin::validatePatchFlags() const {
 }
 
 // Delegation of image/patch extraction
+Config ImageExtractionPlugin::init(
+    const vi_map::VIMapManager& map_manager, const std::string& map_key) const {
+  std::string output_dir;
+  if (FLAGS_ie_output_dir == "") {
+    map_manager.getMapFolder(map_key, &output_dir);
+  } else {
+    output_dir = FLAGS_ie_output_dir;
+  }
+  fs::path output_path(output_dir);
+  if (!fs::exists(output_path)) {
+    if (fs::create_directory(output_path)) {
+      LOG(ERROR) << "Invalid value for parameter --ie_output_dir,"
+                    " could not create directory: "
+                 << output_path.string();
+    }
+  }
+
+  Config config;
+  config.init(output_path.string());
+
+  std::cout << "output directory: " << config.getWorkPath().string()
+            << std::endl;
+}
+
 bool ImageExtractionPlugin::processPatches(
     const vi_map::VIMapManager::MapReadAccess& map) const {
   vi_map::LandmarkIdList landmark_ids;
@@ -347,9 +361,9 @@ bool ImageExtractionPlugin::processPatches(
   return true;
 }
 
-void acquireVertices(
+void ImageExtractionPlugin::acquireVertices(
     const vi_map::VIMapManager::MapReadAccess& map,
-    const vi_map::LandmarkIdList& landmark_idx) {
+    const vi_map::LandmarkIdList& landmark_idx) const {
   const unsigned int frame_id = 0;  // id of camera frame
   for (auto& l_id : landmark_idx) {
     pose_graph::VertexIdSet observer_vertices;
