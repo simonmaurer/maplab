@@ -312,6 +312,8 @@ Config ImageExtractionPlugin::init(
 
   std::cout << "output directory: " << config.getWorkPath().string()
             << std::endl;
+
+  return config;
 }
 
 bool ImageExtractionPlugin::processPatches(

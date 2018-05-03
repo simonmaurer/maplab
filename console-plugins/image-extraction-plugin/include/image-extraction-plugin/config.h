@@ -12,8 +12,10 @@
 namespace image_extraction_plugin {
 
 class Config {
-  static const std::string training_dir;
-  static const std::string validation_dir;
+  static const std::string NAME;
+
+  static const std::string TRAINING_DIR;
+  static const std::string VALIDATION_DIR;
 
   boost::filesystem::path work_path;
   boost::filesystem::path training_path;
