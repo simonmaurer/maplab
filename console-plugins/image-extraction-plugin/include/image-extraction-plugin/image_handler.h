@@ -51,9 +51,6 @@ class PlainImageExtractor : public ImageExtractor {
 };
 
 class H5ImageExtractor : public ImageExtractor {
- private:
-  std::vector<cv::Mat> images;
-
  public:
   static const std::string MODE;
 

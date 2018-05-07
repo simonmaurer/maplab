@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <opencv2/highgui.hpp>
-// #include "H5Cpp.h"
 #include <opencv2/hdf.hpp>
 
 #include <boost/filesystem.hpp>
@@ -96,9 +95,11 @@ H5ImageExtractor::H5ImageExtractor(
 void H5ImageExtractor::extract(
     const vi_map::VIMapManager::MapReadAccess& map,
     const pose_graph::VertexIdList& vertex_idx, const std::string& out_path) {
-  std::cout << "ToDo" << std::endl;
   bool success = false;
   fs::path parent_dir(out_path);
+
+  std::vector<cv::Mat> images;
+  cv::Mat output_matrix4d;
 
   const unsigned int frame_id = 0;  // id of camera frame
   int img_id = 0;
@@ -120,15 +121,34 @@ void H5ImageExtractor::extract(
     }
     this->resize(&image);
 
-    this->images.push_back(image);
+    // output_matrix4d.push_back(image);
+    images.push_back(image);
+    if (img_id == 5) {
+      output_matrix4d.push_back(image);
+    }
+
     img_id++;
     std::cout << "Processing vertex id: " << id << std::endl;
   }
-  fs::path out_hdf(out_path);
-  out_hdf.append("dataset_" + this->getFileEnding());
+  // Setting up 4d array from vector<cv::Mat>
+  std::cout << output_matrix4d.rows << std::endl;
+  std::cout << output_matrix4d.cols << std::endl;
+  std::cout << output_matrix4d.type() << std::endl;
 
-  std::cout << "Packed "
-            << " images to: " << out_hdf.string() << std::endl;
+  // Output path
+  fs::path out_hdf(out_path);
+  out_hdf.append("dataset" + this->getFileEnding());
+
+  cv::Ptr<cv::hdf::HDF5> h5_file = cv::hdf::open(out_hdf.string());
+  const std::string dataset = "data";
+  h5_file->dscreate(
+      output_matrix4d.rows, output_matrix4d.cols, output_matrix4d.type(),
+      dataset);
+  h5_file->dsinsert(output_matrix4d, dataset);
+  // h5_file->dsinsert(images, "data");
+  h5_file.release();
+  std::cout << "Packed " << img_id << " images to: " << out_hdf.string()
+            << std::endl;
 
   success = true;
   // return success;
