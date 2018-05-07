@@ -8,6 +8,8 @@
 #include <vector>
 
 #include <opencv2/highgui.hpp>
+// #include "H5Cpp.h"
+#include <opencv2/hdf.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -21,20 +23,27 @@ const std::string PlainImageExtractor::MODE = "plain";
 const std::string H5ImageExtractor::MODE = "hdf5";
 
 // ImageExtractor
-ImageExtractor::ImageExtractor(const bool& greyscale) : greyscale(greyscale) {}
+ImageExtractor::ImageExtractor(const bool& greyscale, const cv::Size& img_size)
+    : greyscale(greyscale), img_size(img_size) {}
 
 std::string ImageExtractor::getName() const {
   return "image_extraction_";
 }
 
+void ImageExtractor::resize(cv::Mat* image) const {
+  if (this->img_size.height > -1 && this->img_size.width > -1) {
+    cv::resize(*image, *image, this->img_size);
+  }
+}
+
 // PlainImageExtractor
-PlainImageExtractor::PlainImageExtractor(const bool& greyscale)
-    : ImageExtractor(greyscale) {}
+PlainImageExtractor::PlainImageExtractor(
+    const bool& greyscale, const cv::Size& img_size)
+    : ImageExtractor(greyscale, img_size) {}
 
 void PlainImageExtractor::extract(
     const vi_map::VIMapManager::MapReadAccess& map,
-    const pose_graph::VertexIdList& vertex_idx,
-    const std::string& out_path) const {
+    const pose_graph::VertexIdList& vertex_idx, const std::string& out_path) {
   bool success = false;
   fs::path parent_dir(out_path);
 
@@ -57,6 +66,7 @@ void PlainImageExtractor::extract(
       // return false;
       continue;
     }
+    this->resize(&image);
 
     fs::path out_image(out_path);
     out_image.append("img_" + std::to_string(img_id) + this->getFileEnding());
@@ -79,15 +89,15 @@ std::string PlainImageExtractor::getFileEnding() const {
 }
 
 // H5ImageExtractor
-H5ImageExtractor::H5ImageExtractor(const bool& greyscale)
-    : ImageExtractor(greyscale) {}
+H5ImageExtractor::H5ImageExtractor(
+    const bool& greyscale, const cv::Size& img_size)
+    : ImageExtractor(greyscale, img_size) {}
 
 void H5ImageExtractor::extract(
     const vi_map::VIMapManager::MapReadAccess& map,
-    const pose_graph::VertexIdList& vertex_idx,
-    const std::string& out_path) const {
+    const pose_graph::VertexIdList& vertex_idx, const std::string& out_path) {
   std::cout << "ToDo" << std::endl;
-  /*bool success = false;
+  bool success = false;
   fs::path parent_dir(out_path);
 
   const unsigned int frame_id = 0;  // id of camera frame
@@ -108,17 +118,19 @@ void H5ImageExtractor::extract(
       // return false;
       continue;
     }
+    this->resize(&image);
 
-    fs::path out_image(out_path);
-    out_image.append("img_"+std::to_string(img_id)+this->getFileEnding());
-    cv::imwrite(out_image.string(), image);
+    this->images.push_back(image);
     img_id++;
     std::cout << "Processing vertex id: " << id << std::endl;
   }
-  std::cout << "Extracted " << img_id
-            << " images to: " << parent_dir.string() << std::endl;
+  fs::path out_hdf(out_path);
+  out_hdf.append("dataset_" + this->getFileEnding());
+
+  std::cout << "Packed "
+            << " images to: " << out_hdf.string() << std::endl;
+
   success = true;
-  */
   // return success;
 }
 

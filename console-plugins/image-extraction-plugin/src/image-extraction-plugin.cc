@@ -185,9 +185,11 @@ int ImageExtractionPlugin::extractImages() const {
   // Extractor
   ImageExtractor* extractor;
   if (FLAGS_ie_image_savemode == PlainImageExtractor::MODE) {
-    extractor = new PlainImageExtractor(FLAGS_ie_greyscale);
+    extractor = new PlainImageExtractor(
+        FLAGS_ie_greyscale, cv::Size(FLAGS_ie_imagesize, FLAGS_ie_imagesize));
   } else {
-    extractor = new H5ImageExtractor(FLAGS_ie_greyscale);
+    extractor = new H5ImageExtractor(
+        FLAGS_ie_greyscale, cv::Size(FLAGS_ie_imagesize, FLAGS_ie_imagesize));
   }
 
   extractor->extract(map, train_idx, config.getTrainingPath().string());
