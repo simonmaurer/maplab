@@ -37,7 +37,7 @@ void Config::init(const std::string& output_dir) {
 }
 
 std::string Config::generateWorkDir() {
-  std::string work_dir;
+  std::string work_dir = Config::NAME + "_";
 
   // Date
   boost::gregorian::date today = boost::gregorian::day_clock::local_day();

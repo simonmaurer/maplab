@@ -10,21 +10,56 @@
 
 #include <opencv2/core.hpp>
 
+#include <map-manager/map-manager.h>
+#include <vi-map/vi-map.h>
+
 #include <boost/filesystem.hpp>
 
-class ImageWriter {
- private:
-  const std::string train_dir;
-  const std::string val_dir;
+namespace image_extraction_plugin {
+
+class ImageExtractor {
+ protected:
+  bool greyscale;
 
  public:
-  explicit ImageWriter(
-      const std::string& train_dir = "training_set",
-      const std::string& val_dir = "validation_set");
-
+  explicit ImageExtractor(const bool& greyscale = true);
   virtual void extract(
-      const std::string& dir_path,
-      const std::vector<cv::Mat>& images) const = 0;
+      const vi_map::VIMapManager::MapReadAccess& map,
+      const pose_graph::VertexIdList& vertex_idx,
+      const std::string& out_path) const = 0;
+
+  virtual std::string getName() const;
+  virtual std::string getFileEnding() const = 0;
 };
+
+class PlainImageExtractor : public ImageExtractor {
+ public:
+  static const std::string MODE;
+
+  explicit PlainImageExtractor(const bool& greyscale = true);
+  virtual void extract(
+      const vi_map::VIMapManager::MapReadAccess& map,
+      const pose_graph::VertexIdList& vertex_idx,
+      const std::string& out_path) const;
+
+  virtual std::string getName() const;
+  virtual std::string getFileEnding() const;
+};
+
+class H5ImageExtractor : public ImageExtractor {
+ public:
+  static const std::string MODE;
+
+  explicit H5ImageExtractor(const bool& greyscale = true);
+  virtual void extract(
+      const vi_map::VIMapManager::MapReadAccess& map,
+      const pose_graph::VertexIdList& vertex_idx,
+      const std::string& out_path) const;
+
+  virtual std::string getName() const;
+  virtual std::string getFileEnding() const;
+};
+
+}  // namespace image_extraction_plugin
 
 #endif  // IMAGE_EXTRACTION_PLUGIN_IMAGE_HANDLER_H_

@@ -10,19 +10,22 @@
 
 #include <algorithm>
 #include <iterator>
+#include <memory>
 #include <random>
 
 #include <console-common/console-plugin-base.h>
 #include <map-manager/map-manager.h>
 #include <vi-map/vertex.h>
 #include <vi-map/vi-map.h>
-// #include <vi-map/vertex-inl.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
 #include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
 // #include <hdf5>
 // #include "H5Cpp.h"
+
+#include <image-extraction-plugin/image_handler.h>
 
 namespace fs = boost::filesystem;
 
@@ -30,7 +33,7 @@ namespace fs = boost::filesystem;
 // supported by extract_images/extract_patches
 DEFINE_string(
     ie_output_dir, "",
-    "Path to the output directory where the images or .hdf5 files shall be "
+    "Path to the output directory where the images or .h5 files shall be "
     "exported. Defaults to input map directory");
 
 DEFINE_bool(
@@ -38,7 +41,7 @@ DEFINE_bool(
     "Whether to extract images/patches as RGB or greyscale.");
 
 DEFINE_double(
-    ie_trainval_ratio, 1.0,
+    ie_trainval_ratio, 0.8,
     "Training vs validation data ratio for the dataset split."
     "Supported range: "
     "[0.0, 1.0], a value of 1.0 corresponds to outputting data to the "
@@ -50,16 +53,22 @@ DEFINE_bool(
     " while extracting images/patches.");
 
 // only supported by extract_images
+DEFINE_string(
+    ie_image_savemode, "plain",
+    "Supported commands: "
+    "extract_images, "
+    "Supported modes: "
+    "\"plain\", \"hdf5\" ");
 DEFINE_int32(
     ie_imagesize, -1,
-    "Image size [px]"
+    "Image size [px], "
     "Supported commands: "
-    "extract_images "
+    "extract_images, "
     "Supported patch sizes: "
     "keep original image size = -1, 1 - std::numeric_limits<int>::max()");
 DEFINE_int32(
     ie_num_images, -1,
-    "Number of images to extract per map"
+    "Number of images to extract per map, "
     "Supported commands: "
     "extract_images "
     "Supported number of images: "
@@ -68,7 +77,7 @@ DEFINE_int32(
 // only supported by extract_patches
 DEFINE_int32(
     ie_patchsize, 64,
-    "Patch size [px]"
+    "Patch size [px], "
     "Supported commands: "
     "extract_patches "
     "Supported patch sizes: "
@@ -76,14 +85,14 @@ DEFINE_int32(
 DEFINE_uint64(
     ie_num_landmarks_per_map, 100,
     "Number of landmarks/3d points per map to extract corresponding image "
-    "patches from"
+    "patches from, "
     "Supported commands: "
     "extract_patches "
     "Supported number of landmarks: "
     "1 - <number of landmarks per map>");
 DEFINE_int32(
     ie_num_samples_per_landmark, 8,
-    "Number of patch pairs/triplets per observed landmark"
+    "Number of patch pairs/triplets per observed landmark, "
     "Supported commands: "
     "extract_patches "
     "Supported number of samples per landmark: "
@@ -133,7 +142,7 @@ int ImageExtractionPlugin::extractImages() const {
   std::cout << "Image extraction in progress.." << std::endl;
 
   Config config = init(map_manager, selected_map_key);
-  std::cout << "lölölö" << std::endl;
+
   vi_map::VIMapManager::MapReadAccess map =
       map_manager.getMapReadAccess(selected_map_key);
   // processPatches(map);  //???
@@ -158,26 +167,34 @@ int ImageExtractionPlugin::extractImages() const {
     vertex_idx_extracted.push_back(*it);
   }
 
-  std::vector<cv::Mat> images;
-  const unsigned int frame_id = 0;  // id of camera frame
-  for (const pose_graph::VertexId& id : vertex_idx_extracted) {
-    const vi_map::Vertex& vertex = map->getVertex(id);
-    cv::Mat image;
-    if (FLAGS_ie_greyscale) {
-      // frame_id
-      map->getRawImage(vertex, frame_id, &image);
+  // Splitting landmarks into training and validation set
+  const size_t split_pos = FLAGS_ie_trainval_ratio * num_images_to_extract;
+  pose_graph::VertexIdList train_idx;
+  pose_graph::VertexIdList validation_idx;
+  const pose_graph::VertexIdList::iterator split_iterator =
+      vertex_idx_extracted.begin() + split_pos;
+  for (auto it = vertex_idx_extracted.begin(); it != vertex_idx_extracted.end();
+       ++it) {
+    if (std::distance(it, split_iterator) > 0) {
+      train_idx.push_back(*it);
     } else {
-      map->getRawColorImage(vertex, frame_id, &image);
+      validation_idx.push_back(*it);
     }
-    images.push_back(image);
   }
-  std::cout << "Extracted " << images.size()
-            << " images from map: " << selected_map_key << std::endl;
 
+  // Extractor
+  ImageExtractor* extractor;
+  if (FLAGS_ie_image_savemode == PlainImageExtractor::MODE) {
+    extractor = new PlainImageExtractor(FLAGS_ie_greyscale);
+  } else {
+    extractor = new H5ImageExtractor(FLAGS_ie_greyscale);
+  }
 
-  std::string map_path;
-  map_manager.getMapFolder(selected_map_key, &map_path);
-  std::cout << "Saved images to folder: " << map_path << std::endl;
+  extractor->extract(map, train_idx, config.getTrainingPath().string());
+  extractor->extract(map, validation_idx, config.getValidationPath().string());
+  delete extractor;
+
+  std::cout << "Saved images to folder: " << config.getWorkPath() << std::endl;
 
   // Other commonly used return values are common::kUnknownError and
   // common::kStupidUserError.
@@ -376,7 +393,8 @@ void ImageExtractionPlugin::acquireVertices(
       continue;
 
     for (auto& v_id : observer_vertices) {
-      const vi_map::Vertex vertex = map->getVertex(v_id);
+      const vi_map::Vertex& vertex = map->getVertex(v_id);
+      // Get corresponding cv::Mat
       cv::Mat image;
       if (FLAGS_ie_greyscale) {
         // frame_id
@@ -384,8 +402,25 @@ void ImageExtractionPlugin::acquireVertices(
       } else {
         map->getRawColorImage(vertex, frame_id, &image);
       }
+
+      // Get projected 2d point from 3d point
+      // const Eigen::Vector3d point3d = map->getLandmark_p_C_fi(l_id, vertex,
+      // frame_id);
+      // Eigen::Vector2d point2d;
+      // aslam::ProjectionResult result =
+      // vertex.getCamera(frame_id)->project3(point3d, &point2d);
+      // aslam::Camera::Ptr cam = vertex.getCamera(frame_id);
+
+      // Eigen::Ref<Eigen::Vector3d> a(point3d);
+
+      // if (result == aslam::ProjectionResult::KEYPOINT_VISIBLE) continue;
     }
   }
+}
+
+bool ImageExtractionPlugin::processImages(
+    const vi_map::VIMapManager::MapReadAccess& map) const {
+  return true;
 }
 
 }  // namespace image_extraction_plugin
