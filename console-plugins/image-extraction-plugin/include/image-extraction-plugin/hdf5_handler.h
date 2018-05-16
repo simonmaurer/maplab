@@ -17,26 +17,42 @@ class H5Object {
   // Data written to HDF5
   // std::vector <cv::Mat> data;
   cv::Mat all_data;
+  int data_counter = 0;
+  int img_rows = 0;
+  int img_cols = 0;
 
   // Internal variables
   std::string dir_path;
+  std::string current_output_path;
+  std::string file_ending;
   int file_counter = 0;
-  int split_size = -1;  // Default: dont split into ultiple .h5/.hdf5 files
+  int split_size = -1;  // Default: dont split into multiple .h5/.hdf5 files
+
+  void setOutputPath();
+  void writeHeader() const;
 
  public:
-  explicit H5Object(const std::string& dir_path, const int& split_size = -1);
-  void add(const cv::Mat& mat);
+  // Serialization definition
+  static const std::string DIMS;
+  static const std::string NUM_DATA;
+  static const std::string DATA;
+
+  explicit H5Object(
+      const std::string& dir_path, const int& split_size = -1,
+      const std::string& file_ending = ".h5");
+  bool add(const cv::Mat& mat);
 
   void reset();
 
-  virtual void write(const std::string& dir_path) const = 0;
+  virtual bool write() const = 0;
 };
 
 class H5ImageObject : public H5Object {
  public:
   explicit H5ImageObject(
-      const std::string& dir_path, const int& split_size = -1);
-  virtual bool write(const std::string& dir_path);
+      const std::string& dir_path, const int& split_size = -1,
+      const std::string& file_ending = ".h5");
+  virtual bool write() const;
 };
 
 }  // namespace image_extraction_plugin

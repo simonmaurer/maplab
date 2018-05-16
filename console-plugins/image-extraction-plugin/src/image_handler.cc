@@ -13,6 +13,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
 
+#include <image-extraction-plugin/hdf5_handler.h>
+
 namespace fs = boost::filesystem;
 
 namespace image_extraction_plugin {
@@ -99,7 +101,7 @@ void H5ImageExtractor::extract(
   fs::path parent_dir(out_path);
 
   std::vector<cv::Mat> images;
-  cv::Mat output_matrix4d;
+  H5ImageObject h5(parent_dir.string());
 
   const unsigned int frame_id = 0;  // id of camera frame
   int img_id = 0;
@@ -124,14 +126,15 @@ void H5ImageExtractor::extract(
     // output_matrix4d.push_back(image);
     images.push_back(image);
     if (img_id == 5) {
-      output_matrix4d.push_back(image);
+      h5.add(image);
     }
 
     img_id++;
     std::cout << "Processing vertex id: " << id << std::endl;
   }
+  h5.write();
   // Setting up 4d array from vector<cv::Mat>
-  std::cout << output_matrix4d.rows << std::endl;
+  /*std::cout << output_matrix4d.rows << std::endl;
   std::cout << output_matrix4d.cols << std::endl;
   std::cout << output_matrix4d.type() << std::endl;
 
@@ -147,8 +150,11 @@ void H5ImageExtractor::extract(
   h5_file->dsinsert(output_matrix4d, dataset);
   // h5_file->dsinsert(images, "data");
   h5_file.release();
+
   std::cout << "Packed " << img_id << " images to: " << out_hdf.string()
             << std::endl;
+            */
+  std::cout << "Extracted images to: " << parent_dir.string() << std::endl;
 
   success = true;
   // return success;
