@@ -21,7 +21,10 @@ namespace image_extraction_plugin {
 // Serialization definition
 const std::string H5Object::DIMS = "dims";
 const std::string H5Object::NUM_DATA = "num_samples";
-const std::string H5Object::DATA = "data";
+const std::string H5Object::DATA = "/data";
+
+const std::string H5ImageObject::KEYPOINTS =
+    "/keypoints";  // used with keypointsX
 
 H5Object::H5Object(
     const std::string& dir_path, const int& split_size,
@@ -48,13 +51,15 @@ void H5Object::setOutputPath() {
 bool H5Object::add(const cv::Mat& mat) {
   // Assigning dimensions from first added cv::Mat
   if (this->data_counter == 0) {
+    this->img_channels = mat.channels();
     this->img_rows = mat.rows;
     this->img_cols = mat.cols;
-    std::cout << "Dimension of data: " << this->img_rows << "x"
-              << this->img_cols << std::endl;
+    std::cout << "Dimension of data: " << this->img_channels << "x"
+              << this->img_rows << "x" << this->img_cols << std::endl;
     // check if dimensions are equal for all data
   } else {
-    if (this->img_rows != mat.rows || this->img_cols != mat.cols) {
+    if (this->img_channels != mat.channels() || this->img_rows != mat.rows ||
+        this->img_cols != mat.cols) {
       std::cout << "Different dimensions in data!" << std::endl;
       return false;
     }
@@ -77,7 +82,9 @@ void H5Object::writeHeader() const {
 
   // Header: dimensions
   cv::Mat dims;
-  dims = (cv::Mat_<int>(1, 2) << this->img_rows, this->img_cols);
+  dims =
+      (cv::Mat_<int>(1, 3) << this->img_channels, this->img_rows,
+       this->img_cols);
   // std::cout << dims.at<int>(0,0) << std::endl;
   // std::cout << dims.at<int>(0,1) << std::endl;
   h5_file->dscreate(dims.rows, dims.cols, dims.type(), H5Object::DIMS);
@@ -86,7 +93,7 @@ void H5Object::writeHeader() const {
   cv::Mat num_data;
   num_data = (cv::Mat_<int>(1, 1) << this->data_counter);
   h5_file->dscreate(1, 1, CV_32S, H5Object::NUM_DATA);
-  h5_file->dswrite(num_data, H5Object::DIMS);
+  h5_file->dswrite(num_data, H5Object::NUM_DATA);
   h5_file->close();
 
   /*H5::H5File *f = new H5::H5File(this->current_output_path, H5F_ACC_TRUNC);
@@ -110,16 +117,36 @@ H5ImageObject::H5ImageObject(
     const std::string& dir_path, const int& split_size,
     const std::string& file_ending)
     : H5Object(dir_path, split_size, file_ending) {}
+void H5ImageObject::addKeypoints(const std::vector<cv::KeyPoint>& keypoints) {
+  this->all_keypoints.push_back(keypoints);
+}
 bool H5ImageObject::write() const {
   writeHeader();
-
   cv::Ptr<cv::hdf::HDF5> h5_file = cv::hdf::open(this->current_output_path);
 
-  // Data samples
+  // Group for data
+  if (!h5_file->hlexists(DATA))
+    h5_file->grcreate(DATA);
   h5_file->dscreate(
       this->all_data.rows, this->all_data.cols, this->all_data.type(),
-      H5Object::DATA);
-  h5_file->dsinsert(this->all_data, H5Object::DATA);
+      H5Object::DATA + H5Object::DATA);
+  h5_file->dsinsert(this->all_data, H5Object::DATA + H5Object::DATA);
+
+  // Group for keypoints if available
+  if (this->all_keypoints.size() > 0) {
+    if (!h5_file->hlexists(KEYPOINTS))
+      h5_file->grcreate(KEYPOINTS);
+
+    for (size_t i = 0; i < all_keypoints.size(), i++) {
+      const int num_keypoints = all_keypoints[i].size();
+      h5_file->kpcreate(
+          num_keypoints, H5ImageObject::KEYPOINTS + H5ImageObject::KEYPOINTS +
+                             std::to_string(i));
+      h5_file->kpinsert(
+          all_keypoints[i], H5ImageObject::KEYPOINTS +
+                                H5ImageObject::KEYPOINTS + std::to_string(i));
+    }
+  }
 
   h5_file->close();
 

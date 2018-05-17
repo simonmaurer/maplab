@@ -18,6 +18,7 @@ class H5Object {
   // std::vector <cv::Mat> data;
   cv::Mat all_data;
   int data_counter = 0;
+  int img_channels = 1;
   int img_rows = 0;
   int img_cols = 0;
 
@@ -48,10 +49,16 @@ class H5Object {
 };
 
 class H5ImageObject : public H5Object {
+ protected:
+  std::vector<std::vector<cv::KeyPoint>> all_keypoints;
+
  public:
+  static const std::string KEYPOINTS;
+
   explicit H5ImageObject(
       const std::string& dir_path, const int& split_size = -1,
       const std::string& file_ending = ".h5");
+  void addKeypoints(const std::vector<cv::KeyPoint>& keypoints);
   virtual bool write() const;
 };
 
