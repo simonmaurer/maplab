@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <opencv2/core.hpp>
+#include <opencv2/features2d.hpp>
 
 #include <map-manager/map-manager.h>
 #include <vi-map/vi-map.h>
@@ -51,6 +52,9 @@ class PlainImageExtractor : public ImageExtractor {
 };
 
 class H5ImageExtractor : public ImageExtractor {
+ private:
+  cv::Ptr<cv::FeatureDetector> detector;
+
  public:
   static const std::string MODE;
 

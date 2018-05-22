@@ -23,6 +23,12 @@ const std::string H5Object::DIMS = "dims";
 const std::string H5Object::NUM_DATA = "num_data";
 const std::string H5Object::DATA = "/data";
 
+/*
+ * C++ cv::KeyPoint will be written to HDF5 and read in Python
+ * as numpy.void object from dataset/numpy-array with following order:
+ * x, y, size, angle, response, octave, class_id
+ * Make sure to parse it correctly or create cv2.KeyPoint objects
+ * */
 const std::string H5ImageObject::KEYPOINTS =
     "/keypoints";  // used with keypointsX
 

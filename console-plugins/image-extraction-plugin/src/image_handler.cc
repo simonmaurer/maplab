@@ -92,7 +92,9 @@ std::string PlainImageExtractor::getFileEnding() const {
 // H5ImageExtractor
 H5ImageExtractor::H5ImageExtractor(
     const bool& greyscale, const cv::Size& img_size)
-    : ImageExtractor(greyscale, img_size) {}
+    : ImageExtractor(greyscale, img_size) {
+  this->detector = cv::FastFeatureDetector::create(20, true);
+}
 
 void H5ImageExtractor::extract(
     const vi_map::VIMapManager::MapReadAccess& map,
@@ -100,7 +102,6 @@ void H5ImageExtractor::extract(
   bool success = false;
   fs::path parent_dir(out_path);
 
-  std::vector<cv::Mat> images;
   H5ImageObject h5(parent_dir.string());
 
   const unsigned int frame_id = 0;  // id of camera frame
@@ -123,37 +124,22 @@ void H5ImageExtractor::extract(
     }
     this->resize(&image);
 
-    // output_matrix4d.push_back(image);
-    images.push_back(image);
     if (img_id < 5) {
       h5.add(image);
+      std::vector<cv::KeyPoint> kpts;
+      detector->detect(image, kpts);
+      h5.addKeypoints(kpts);
     }
+    /*h5.add(image);
+    std::vector<cv::KeyPoint> keypoints;
+    this->detector->detect(image, keypoints);
+    h5.addKeypoints(keypoints);*/
 
     img_id++;
     std::cout << "Processing vertex id: " << id << std::endl;
   }
   h5.write();
-  // Setting up 4d array from vector<cv::Mat>
-  /*std::cout << output_matrix4d.rows << std::endl;
-  std::cout << output_matrix4d.cols << std::endl;
-  std::cout << output_matrix4d.type() << std::endl;
 
-  // Output path
-  fs::path out_hdf(out_path);
-  out_hdf.append("dataset" + this->getFileEnding());
-
-  cv::Ptr<cv::hdf::HDF5> h5_file = cv::hdf::open(out_hdf.string());
-  const std::string dataset = "data";
-  h5_file->dscreate(
-      output_matrix4d.rows, output_matrix4d.cols, output_matrix4d.type(),
-      dataset);
-  h5_file->dsinsert(output_matrix4d, dataset);
-  // h5_file->dsinsert(images, "data");
-  h5_file.release();
-
-  std::cout << "Packed " << img_id << " images to: " << out_hdf.string()
-            << std::endl;
-            */
   std::cout << "Extracted images to: " << parent_dir.string() << std::endl;
 
   success = true;
