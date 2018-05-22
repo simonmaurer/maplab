@@ -20,7 +20,7 @@ namespace image_extraction_plugin {
 //// H5Object
 // Serialization definition
 const std::string H5Object::DIMS = "dims";
-const std::string H5Object::NUM_DATA = "num_samples";
+const std::string H5Object::NUM_DATA = "num_data";
 const std::string H5Object::DATA = "/data";
 
 const std::string H5ImageObject::KEYPOINTS =
@@ -50,7 +50,7 @@ void H5Object::setOutputPath() {
 
 bool H5Object::add(const cv::Mat& mat) {
   // Assigning dimensions from first added cv::Mat
-  if (this->data_counter == 0) {
+  if (this->num_data == 0) {
     this->img_channels = mat.channels();
     this->img_rows = mat.rows;
     this->img_cols = mat.cols;
@@ -65,8 +65,9 @@ bool H5Object::add(const cv::Mat& mat) {
     }
   }
 
+  // this->data.push_back(mat);
   this->all_data.push_back(mat);
-  this->data_counter++;
+  this->num_data++;
 
   return true;
 }
@@ -91,7 +92,7 @@ void H5Object::writeHeader() const {
   h5_file->dswrite(dims, H5Object::DIMS);
   // Header: sample information
   cv::Mat num_data;
-  num_data = (cv::Mat_<int>(1, 1) << this->data_counter);
+  num_data = (cv::Mat_<int>(1, 1) << this->num_data);
   h5_file->dscreate(1, 1, CV_32S, H5Object::NUM_DATA);
   h5_file->dswrite(num_data, H5Object::NUM_DATA);
   h5_file->close();
@@ -127,17 +128,24 @@ bool H5ImageObject::write() const {
   // Group for data
   if (!h5_file->hlexists(DATA))
     h5_file->grcreate(DATA);
-  h5_file->dscreate(
+  /*h5_file->dscreate(
       this->all_data.rows, this->all_data.cols, this->all_data.type(),
       H5Object::DATA + H5Object::DATA);
-  h5_file->dsinsert(this->all_data, H5Object::DATA + H5Object::DATA);
+  h5_file->dsinsert(this->all_data, H5Object::DATA + H5Object::DATA);*/
+  const int datadims[NUM_DATA_DIMS] = {this->num_data, this->img_rows,
+                                       this->img_cols, this->img_channels};
+  const cv::Mat batch = this->all_data.reshape(1, NUM_DATA_DIMS, datadims);
+  h5_file->dscreate(
+      NUM_DATA_DIMS, datadims, batch.type(), H5Object::DATA + H5Object::DATA);
+  h5_file->dsinsert(batch, H5Object::DATA + H5Object::DATA);
 
   // Group for keypoints if available
   if (this->all_keypoints.size() > 0) {
-    if (!h5_file->hlexists(KEYPOINTS))
+    if (!h5_file->hlexists(KEYPOINTS)) {
       h5_file->grcreate(KEYPOINTS);
+    }
 
-    for (size_t i = 0; i < all_keypoints.size(), i++) {
+    for (size_t i = 0; i < all_keypoints.size(); i++) {
       const int num_keypoints = all_keypoints[i].size();
       h5_file->kpcreate(
           num_keypoints, H5ImageObject::KEYPOINTS + H5ImageObject::KEYPOINTS +

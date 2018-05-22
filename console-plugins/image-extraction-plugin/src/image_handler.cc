@@ -125,7 +125,7 @@ void H5ImageExtractor::extract(
 
     // output_matrix4d.push_back(image);
     images.push_back(image);
-    if (img_id == 5) {
+    if (img_id < 5) {
       h5.add(image);
     }
 

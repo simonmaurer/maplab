@@ -17,10 +17,11 @@ class H5Object {
   // Data written to HDF5
   // std::vector <cv::Mat> data;
   cv::Mat all_data;
-  int data_counter = 0;
+  int num_data = 0;
   int img_channels = 1;
   int img_rows = 0;
   int img_cols = 0;
+  const int NUM_DATA_DIMS = 4;
 
   // Internal variables
   std::string dir_path;
