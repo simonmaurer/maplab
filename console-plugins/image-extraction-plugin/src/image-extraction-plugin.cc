@@ -149,6 +149,7 @@ int ImageExtractionPlugin::extractImages() const {
 
   pose_graph::VertexIdList vertex_idx;
   map->getAllVertexIds(&vertex_idx);
+
   const int num_vertices = vertex_idx.size();
   if (FLAGS_ie_num_images > num_vertices) {
     LOG(ERROR) << "--ie_num_images, the number of images"
@@ -249,6 +250,17 @@ bool ImageExtractionPlugin::validateGeneralFlags() const {
 }
 
 bool ImageExtractionPlugin::validateImageFlags() const {
+  std::string image_save_mode = FLAGS_ie_image_savemode;
+  std::transform(
+      image_save_mode.begin(), image_save_mode.end(), image_save_mode.begin(),
+      ::tolower);
+  if (image_save_mode.compare(PlainImageExtractor::MODE) != 0 &&
+      image_save_mode.compare(H5ImageExtractor::MODE) != 0) {
+    std::cout << "mode: " << image_save_mode << std::endl;
+    LOG(ERROR) << "Invalid value for parameter, "
+                  "supported values are: \"plain\", \"hdf5\"";
+    return false;
+  }
   if (FLAGS_ie_num_images < -1 || FLAGS_ie_num_images == 0 ||
       FLAGS_ie_num_images > std::numeric_limits<int>::max()) {
     LOG(ERROR)
