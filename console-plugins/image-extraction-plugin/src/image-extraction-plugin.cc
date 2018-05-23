@@ -148,7 +148,7 @@ int ImageExtractionPlugin::extractImages() const {
   // processPatches(map);  //???
 
   pose_graph::VertexIdList vertex_idx;
-  map->getAllVertexIds(&vertex_idx);
+  map->getAllVertexIdsAlongGraphsSortedByTimestamp(&vertex_idx);
 
   const int num_vertices = vertex_idx.size();
   if (FLAGS_ie_num_images > num_vertices) {
@@ -168,7 +168,7 @@ int ImageExtractionPlugin::extractImages() const {
     vertex_idx_extracted.push_back(*it);
   }
 
-  // Splitting landmarks into training and validation set
+  // Splitting vertices into training and validation set
   const size_t split_pos = FLAGS_ie_trainval_ratio * num_images_to_extract;
   pose_graph::VertexIdList train_idx;
   pose_graph::VertexIdList validation_idx;
