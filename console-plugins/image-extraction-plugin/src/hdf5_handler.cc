@@ -31,6 +31,7 @@ const std::string H5Object::DATA = "/data";
  * */
 const std::string H5ImageObject::KEYPOINTS =
     "/keypoints";  // used with keypointsX
+const std::string H5ImageObject::NUM_KEYPOINTS = "num_keypoints";
 
 H5Object::H5Object(
     const std::string& dir_path, const int& split_size,
@@ -126,6 +127,7 @@ H5ImageObject::H5ImageObject(
     : H5Object(dir_path, split_size, file_ending) {}
 void H5ImageObject::addKeypoints(const std::vector<cv::KeyPoint>& keypoints) {
   this->all_keypoints.push_back(keypoints);
+  this->num_keypoints += keypoints.size();
 }
 bool H5ImageObject::write() const {
   writeHeader();
@@ -161,6 +163,10 @@ bool H5ImageObject::write() const {
                                 H5ImageObject::KEYPOINTS + std::to_string(i));
     }
   }
+  cv::Mat num_keypoints;
+  num_keypoints = (cv::Mat_<int>(1, 1) << this->num_keypoints);
+  h5_file->dscreate(1, 1, CV_32S, H5ImageObject::NUM_KEYPOINTS);
+  h5_file->dswrite(num_keypoints, H5ImageObject::NUM_KEYPOINTS);
 
   h5_file->close();
 

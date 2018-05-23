@@ -52,9 +52,11 @@ class H5Object {
 class H5ImageObject : public H5Object {
  protected:
   std::vector<std::vector<cv::KeyPoint>> all_keypoints;
+  int num_keypoints = 0;
 
  public:
   static const std::string KEYPOINTS;
+  static const std::string NUM_KEYPOINTS;
 
   explicit H5ImageObject(
       const std::string& dir_path, const int& split_size = -1,
