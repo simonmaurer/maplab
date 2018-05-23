@@ -30,7 +30,7 @@ include_directories(${Boost_INCLUDE_DIRS})      # set manually since mixes /usr/
 link_directories(${Boost_LIBRARY_DIRS})
 
 
-cs_add_library(${PROJECT_NAME} src/image-extraction-plugin.cc src/config.cc src/image_handler.cc src/hdf5_handler.cc)
+cs_add_library(${PROJECT_NAME} src/image-extraction-plugin.cc src/config.cc src/image_extractor.cc src/hdf5_handler.cc)
 #target_link_libraries(${PROJECT_NAME} hdf5 hdf5_cpp hdf5_hl_cpp)   # no need since package depends on hdf5_catkin
 target_link_libraries(${PROJECT_NAME} boost_filesystem boost_system boost_date_time)
 #target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})

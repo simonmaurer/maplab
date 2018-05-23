@@ -2,8 +2,8 @@
 // Created by Simon Maurer on 23.04.18.
 //
 
-#ifndef IMAGE_EXTRACTION_PLUGIN_IMAGE_HANDLER_H_
-#define IMAGE_EXTRACTION_PLUGIN_IMAGE_HANDLER_H_
+#ifndef IMAGE_EXTRACTION_PLUGIN_IMAGE_EXTRACTOR_H_
+#define IMAGE_EXTRACTION_PLUGIN_IMAGE_EXTRACTOR_H_
 
 #include <string>
 #include <vector>
@@ -69,4 +69,4 @@ class H5ImageExtractor : public ImageExtractor {
 
 }  // namespace image_extraction_plugin
 
-#endif  // IMAGE_EXTRACTION_PLUGIN_IMAGE_HANDLER_H_
+#endif  // IMAGE_EXTRACTION_PLUGIN_IMAGE_EXTRACTOR_H_

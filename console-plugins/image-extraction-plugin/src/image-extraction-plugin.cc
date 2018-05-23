@@ -25,7 +25,7 @@
 // #include <hdf5>
 // #include "H5Cpp.h"
 
-#include <image-extraction-plugin/image_handler.h>
+#include <image-extraction-plugin/image_extractor.h>
 
 namespace fs = boost::filesystem;
 

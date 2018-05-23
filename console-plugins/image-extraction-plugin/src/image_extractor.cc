@@ -2,13 +2,13 @@
 // Created by Simon Maurer on 25.04.18.
 //
 
-#include "image-extraction-plugin/image_handler.h"
+#include "image-extraction-plugin/image_extractor.h"
 
 #include <string>
 #include <vector>
 
-#include <opencv2/highgui.hpp>
 #include <opencv2/hdf.hpp>
+#include <opencv2/highgui.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
@@ -117,8 +117,9 @@ void H5ImageExtractor::extract(
     }
     if (image.rows <= 0) {
       LOG(ERROR) << "Could not extract image of vertex"
-                    " with id " << id << ", resources missing? - "
-                                         "check with res_stats!";
+                    " with id "
+                 << id << ", resources missing? - "
+                          "check with res_stats!";
       // return false;
       continue;
     }
