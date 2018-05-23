@@ -91,8 +91,8 @@ void H5Object::writeHeader() const {
   // Header: dimensions
   cv::Mat dims;
   dims =
-      (cv::Mat_<int>(1, 3) << this->img_channels, this->img_rows,
-       this->img_cols);
+      (cv::Mat_<int>(1, 3) << this->img_rows, this->img_cols,
+       this->img_channels);
   // std::cout << dims.at<int>(0,0) << std::endl;
   // std::cout << dims.at<int>(0,1) << std::endl;
   h5_file->dscreate(dims.rows, dims.cols, dims.type(), H5Object::DIMS);
