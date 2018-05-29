@@ -93,7 +93,7 @@ std::string PlainImageExtractor::getFileEnding() const {
 H5ImageExtractor::H5ImageExtractor(
     const bool& greyscale, const cv::Size& img_size)
     : ImageExtractor(greyscale, img_size) {
-  this->detector = cv::FastFeatureDetector::create(20, true);
+  this->detector = cv::FastFeatureDetector::create(50, true);
 }
 
 void H5ImageExtractor::extract(
@@ -125,16 +125,16 @@ void H5ImageExtractor::extract(
     }
     this->resize(&image);
 
-    if (img_id < 5) {
+    /*if (img_id < 5) {
       h5.add(image);
       std::vector<cv::KeyPoint> kpts;
       detector->detect(image, kpts);
       h5.addKeypoints(kpts);
-    }
-    /*h5.add(image);
+    }*/
+    h5.add(image);
     std::vector<cv::KeyPoint> keypoints;
     this->detector->detect(image, keypoints);
-    h5.addKeypoints(keypoints);*/
+    h5.addKeypoints(keypoints);
 
     img_id++;
     std::cout << "Processing vertex id: " << id << std::endl;
